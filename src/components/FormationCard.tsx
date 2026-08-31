@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import type { Formation } from '../../core/models';
-import { useTheme, radius, spacing, shadow } from '../../core/theme/theme';
-import { ProgressBar } from '../../ui/components/ProgressBar';
-import { Chip } from '../../ui/components/Chip';
+import type { Formation } from '../core/models';
+import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { ProgressBar } from './ProgressBar';
+import { Chip } from './Chip';
 
 interface Props {
   formation: Formation;
@@ -32,7 +32,7 @@ export function FormationCard({ formation, percent, index, onPress }: Props) {
       >
         <View style={styles.top}>
           <View style={[styles.icon, { backgroundColor: formation.color + (theme.mode === 'dark' ? '2E' : '18') }]}>
-            <Ionicons name={formation.icon as any} size={26} color={formation.color} />
+            <Ionicons name={formation.icon} size={26} color={formation.color} />
           </View>
           <View style={{ flex: 1, gap: 4 }}>
             <View style={styles.titleRow}>

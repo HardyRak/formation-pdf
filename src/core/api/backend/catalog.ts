@@ -1,4 +1,4 @@
-import type { Formation, Level, TrainingDocument, PdfPage, PdfBlock } from '../../models';
+import type { Formation, IconName, Level, TrainingDocument, PdfPage, PdfBlock } from '../../models';
 
 /** ---------------------------------------------------------------
  * Jeu de données servi par l'API (miroir des entités NestJS).
@@ -48,7 +48,7 @@ interface FormationSeed {
   name: string;
   description: string;
   category: string;
-  icon: string;
+  icon: IconName;
   color: string;
   mandatory: boolean;
   levels: LevelSeed[];

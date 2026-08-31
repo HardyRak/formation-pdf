@@ -132,7 +132,7 @@ function buildSession(record: AccountRecord): AuthSession {
 export interface BackendRequest {
   method: 'GET' | 'POST' | 'PATCH';
   path: string;
-  body?: any;
+  body?: Record<string, unknown>;
   token?: string | null;
 }
 
@@ -150,7 +150,7 @@ function requireAuth(token?: string | null): User {
 }
 
 /** Point d'entrée unique : équivalent du routeur NestJS. */
-export async function handleRequest({ method, path, body, token }: BackendRequest): Promise<any> {
+export async function handleRequest({ method, path, body, token }: BackendRequest): Promise<unknown> {
   const db = catalogDb();
 
   // ---- Auth ------------------------------------------------------
@@ -167,7 +167,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
 
   if (method === 'POST' && path === '/auth/refresh') {
     await latency(300);
-    const payload = body?.refreshToken ? decodeJwt(body.refreshToken) : null;
+    const payload = body?.refreshToken ? decodeJwt(body.refreshToken as string) : null;
     if (!payload || payload.typ !== 'refresh' || payload.exp < Date.now()) {
       throw apiError(401, 'REFRESH_EXPIRED', 'Session expirée, reconnexion nécessaire.');
     }

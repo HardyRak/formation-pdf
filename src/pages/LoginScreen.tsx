@@ -12,11 +12,11 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-import { useTheme, radius, spacing, shadow } from '../../core/theme/theme';
-import { TextField } from '../../ui/components/TextField';
-import { Button } from '../../ui/components/Button';
-import { authStore, useAuthStore } from '../../core/state/auth.store';
-import { DEMO_CREDENTIALS } from '../../core/api/backend/server';
+import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { TextField } from '../components/TextField';
+import { Button } from '../components/Button';
+import { authStore, useAuthStore } from '../core/state/auth.store';
+import { DEMO_CREDENTIALS } from '../core/api/backend/server';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

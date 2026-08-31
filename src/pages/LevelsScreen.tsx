@@ -1,17 +1,18 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useTheme, spacing, radius, shadow } from '../../core/theme/theme';
-import { ScreenHeader } from '../../ui/components/ScreenHeader';
-import { ProgressBar } from '../../ui/components/ProgressBar';
-import { LoadingState, MessageState } from '../../ui/components/StateViews';
-import { levelStore, useLevelStore } from '../../core/state/level.store';
-import { formationStore, useFormationStore } from '../../core/state/formation.store';
-import { progressionStore, useProgressionStore } from '../../core/state/progression.store';
-import type { RootStackParamList } from '../../navigation/types';
+import { useTheme, spacing } from '../core/theme/theme';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { ProgressBar } from '../components/ProgressBar';
+import { LoadingState, MessageState } from '../components/StateViews';
+import { AnimatedCard } from '../components/AnimatedCard';
+import { SummaryCard } from '../components/SummaryCard';
+import { levelStore, useLevelStore } from '../core/state/level.store';
+import { formationStore, useFormationStore } from '../core/state/formation.store';
+import { progressionStore, useProgressionStore } from '../core/state/progression.store';
+import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Levels'>;
 
@@ -29,12 +30,10 @@ export function LevelsScreen({ route, navigation }: Props) {
     if (state.formationId !== formationId || state.status === 'idle') {
       void levelStore.load(formationId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formationId]);
+  }, [formationId, state.formationId, state.status]);
 
   const levels = state.status === 'success' ? levelStore.ordered() : [];
   const formationPercent = formation ? progressionStore.formationPercent(formation.id, formation.totalPages) : 0;
-
   const nextLevelId = levels.find((level) => progressionStore.levelPercent(level.id, level.totalPages) < 100)?.id;
 
   return (
@@ -61,15 +60,19 @@ export function LevelsScreen({ route, navigation }: Props) {
         }
         ListHeaderComponent={
           formation ? (
-            <View style={[styles.summary, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(4)]}>
-              <Text style={[styles.summaryText, { color: theme.textMuted }]}>{formation.description}</Text>
+            <SummaryCard
+              description={formation.description}
+              percent={formationPercent}
+              color={accent}
+              progressLabel={'Progression de la formation'}
+              elevation={4}
+            >
               <View style={styles.summaryMeta}>
                 <SummaryItem icon={'layers-outline'} label={`${formation.levelsCount} niveaux`} color={accent} />
                 <SummaryItem icon={'document-text-outline'} label={`${formation.documentsCount} documents`} color={accent} />
                 <SummaryItem icon={'reader-outline'} label={`${formation.totalPages} pages`} color={accent} />
               </View>
-              <ProgressBar percent={formationPercent} color={accent} showLabel label={'Progression de la formation'} />
-            </View>
+            </SummaryCard>
           ) : null
         }
         ListEmptyComponent={
@@ -97,60 +100,52 @@ export function LevelsScreen({ route, navigation }: Props) {
           const percent = progressionStore.levelPercent(item.id, item.totalPages);
           const isNext = item.id === nextLevelId;
           return (
-            <Animated.View entering={FadeInDown.delay(Math.min(index, 6) * 60).duration(340)}>
-              <Pressable
-                onPress={() => {
-                  levelStore.select(item.id);
-                  navigation.navigate('Documents', { levelId: item.id, formationId });
-                }}
-                accessibilityLabel={`Niveau ${item.order} : ${item.name}`}
-                style={({ pressed }) => [
-                  styles.card,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: isNext ? accent + '66' : theme.border,
-                    opacity: pressed ? 0.93 : 1,
-                  },
-                  shadow(3),
-                ]}
-              >
-                <View style={styles.cardTop}>
-                  <View
-                    style={[
-                      styles.step,
-                      {
-                        backgroundColor: percent === 100 ? theme.success : accent + (theme.mode === 'dark' ? '2E' : '18'),
-                      },
-                    ]}
-                  >
-                    {percent === 100 ? (
-                      <Ionicons name={'checkmark'} size={20} color={'#fff'} />
-                    ) : (
-                      <Text style={[styles.stepText, { color: accent }]}>{item.order}</Text>
-                    )}
-                  </View>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.cardMeta, { color: theme.textFaint }]}>
-                      {item.documentsCount} document{item.documentsCount > 1 ? 's' : ''} • {item.totalPages} pages
-                    </Text>
-                  </View>
-                  {isNext ? (
-                    <View style={[styles.nextTag, { backgroundColor: accent }]}>
-                      <Text style={styles.nextTagText}>À SUIVRE</Text>
-                    </View>
+            <AnimatedCard
+              index={index}
+              elevation={3}
+              borderColor={isNext ? accent + '66' : undefined}
+              onPress={() => {
+                levelStore.select(item.id);
+                navigation.navigate('Documents', { levelId: item.id, formationId });
+              }}
+              accessibilityLabel={`Niveau ${item.order} : ${item.name}`}
+            >
+              <View style={styles.cardTop}>
+                <View
+                  style={[
+                    styles.step,
+                    {
+                      backgroundColor: percent === 100 ? theme.success : accent + (theme.mode === 'dark' ? '2E' : '18'),
+                    },
+                  ]}
+                >
+                  {percent === 100 ? (
+                    <Ionicons name={'checkmark'} size={20} color={'#fff'} />
                   ) : (
-                    <Ionicons name={'chevron-forward'} size={19} color={theme.textFaint} />
+                    <Text style={[styles.stepText, { color: accent }]}>{item.order}</Text>
                   )}
                 </View>
-                <Text style={[styles.cardDesc, { color: theme.textMuted }]} numberOfLines={2}>
-                  {item.description}
-                </Text>
-                <ProgressBar percent={percent} color={accent} showLabel />
-              </Pressable>
-            </Animated.View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={2}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.cardMeta, { color: theme.textFaint }]}>
+                    {item.documentsCount} document{item.documentsCount > 1 ? 's' : ''} • {item.totalPages} pages
+                  </Text>
+                </View>
+                {isNext ? (
+                  <View style={[styles.nextTag, { backgroundColor: accent }]}>
+                    <Text style={styles.nextTagText}>À SUIVRE</Text>
+                  </View>
+                ) : (
+                  <Ionicons name={'chevron-forward'} size={19} color={theme.textFaint} />
+                )}
+              </View>
+              <Text style={[styles.cardDesc, { color: theme.textMuted }]} numberOfLines={2}>
+                {item.description}
+              </Text>
+              <ProgressBar percent={percent} color={accent} showLabel />
+            </AnimatedCard>
           );
         }}
       />
@@ -180,18 +175,15 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   headerWrap: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   list: { padding: spacing.md, paddingTop: 4, paddingBottom: spacing.xxl },
-  summary: { borderRadius: radius.lg, borderWidth: 1, padding: spacing.md, gap: 12, marginBottom: spacing.md },
-  summaryText: { fontSize: 13.5, lineHeight: 19 },
   summaryMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   summaryItemText: { fontSize: 12.5, fontWeight: '600' },
-  card: { borderRadius: radius.lg, borderWidth: 1, padding: spacing.md, gap: 11 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   step: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   stepText: { fontSize: 17, fontWeight: '900' },
   cardTitle: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
   cardMeta: { fontSize: 12, fontWeight: '600' },
   cardDesc: { fontSize: 13.5, lineHeight: 19 },
-  nextTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: radius.pill },
+  nextTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999 },
   nextTagText: { color: '#fff', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.6 },
 });

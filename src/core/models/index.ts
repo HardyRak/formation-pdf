@@ -3,6 +3,10 @@
  * (Contrats DTO – aucune logique ici.)
  */
 
+import type Ionicons from '@expo/vector-icons/Ionicons';
+
+export type IconName = keyof typeof Ionicons.glyphMap;
+
 export interface User {
   id: string;
   email: string;
@@ -25,7 +29,7 @@ export interface Formation {
   name: string;
   description: string;
   category: string;
-  icon: string;
+  icon: IconName;
   color: string;
   levelsCount: number;
   documentsCount: number;

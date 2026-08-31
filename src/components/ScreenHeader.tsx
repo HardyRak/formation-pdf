@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme } from '../../core/theme/theme';
+import { useTheme } from '../core/theme/theme';
 
 interface Props {
   title: string;
