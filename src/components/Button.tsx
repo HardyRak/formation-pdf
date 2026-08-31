@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text, StyleSheet, ActivityIndicator, View, ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, radius, shadow } from '../core/theme/theme';
+import { OPACITY, SCALE } from '../core/theme/design-tokens';
 
 interface Props {
   label: string;
@@ -32,8 +33,8 @@ export function Button({ label, onPress, loading, disabled, icon, variant = 'pri
         {
           backgroundColor: bg,
           borderColor: variant === 'ghost' ? theme.border : 'transparent',
-          opacity: isDisabled ? 0.55 : pressed ? 0.88 : 1,
-          transform: [{ scale: pressed && !isDisabled ? 0.985 : 1 }],
+          opacity: isDisabled ? OPACITY.disabled : pressed ? OPACITY.buttonPressed : 1,
+          transform: [{ scale: pressed && !isDisabled ? SCALE.buttonPressed : 1 }],
         },
         style,
       ]}

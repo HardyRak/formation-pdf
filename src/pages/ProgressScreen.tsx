@@ -5,13 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme, spacing, radius, shadow } from '../core/theme/theme';
-import { ProgressBar } from '../components/ProgressBar';
-import { MessageState } from '../components/StateViews';
-import { UserAvatar } from '../components/UserAvatar';
+import { ProgressBar, MessageState } from '../components';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import type { RootStackParamList } from '../navigation/types';
-import { catalogTitleFor } from './document-title';
+import { catalogTitleFor } from '../utils/document-title';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
 

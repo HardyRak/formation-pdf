@@ -31,6 +31,29 @@ const initial: AuthState = {
 const store = signalStore<AuthState>('AuthStore', initial);
 
 let refreshInFlight: Promise<string | null> | null = null;
+let interceptorConfigured = false;
+
+/**
+ * Configure l'intercepteur HTTP pour gérer l'authentification.
+ * Appelée explicitement lors du bootstrap pour éviter les effets de bord cachés.
+ */
+function configureInterceptor() {
+  if (interceptorConfigured) return;
+  
+  configureHttpInterceptor({
+    getAccessToken: () => store.state().session?.accessToken ?? null,
+    onUnauthorized: async () => {
+      if (!refreshInFlight) {
+        refreshInFlight = refreshSession().finally(() => {
+          refreshInFlight = null;
+        });
+      }
+      return refreshInFlight;
+    },
+  });
+  
+  interceptorConfigured = true;
+}
 
 async function persist(session: AuthSession | null) {
   if (session) await secureStorage.set(SESSION_KEY, JSON.stringify(session));
@@ -63,6 +86,7 @@ export const authStore = {
 
   /** Restauration de session au démarrage (équivalent APP_INITIALIZER). */
   async bootstrap(): Promise<void> {
+    configureInterceptor();
     store.patchState({ bootstrapping: true });
     const raw = await secureStorage.get(SESSION_KEY);
     if (!raw) {
@@ -145,18 +169,5 @@ export const authStore = {
     await persist(expired);
   },
 };
-
-/** Intercepteur HTTP : injection du Bearer + rafraîchissement mutualisé. */
-configureHttpInterceptor({
-  getAccessToken: () => store.state().session?.accessToken ?? null,
-  onUnauthorized: async () => {
-    if (!refreshInFlight) {
-      refreshInFlight = refreshSession().finally(() => {
-        refreshInFlight = null;
-      });
-    }
-    return refreshInFlight;
-  },
-});
 
 export const useAuthStore = () => useSignalStore(store);

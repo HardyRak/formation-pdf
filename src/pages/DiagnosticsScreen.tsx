@@ -5,8 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme, spacing, radius, shadow } from '../core/theme/theme';
-import { ScreenHeader } from '../components/ScreenHeader';
-import { Button } from '../components/Button';
+import { ScreenHeader, Button } from '../components';
 import { runTestSuite, TEST_COUNT, type TestResult } from '../testing/test-suite';
 import type { RootStackParamList } from '../navigation/types';
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../core/theme/theme';
+import { OPACITY } from '../core/theme/design-tokens';
 
 interface Props {
   title: string;
@@ -21,7 +22,7 @@ export function ScreenHeader({ title, subtitle, onBack, right }: Props) {
           accessibilityLabel={'Retour'}
           style={({ pressed }) => [
             styles.back,
-            { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+            { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? OPACITY.iconPressed : 1 },
           ]}
         >
           <Ionicons name={'chevron-back'} size={21} color={theme.text} />

@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Pressable, ViewStyle, PressableProps } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { OPACITY, SCALE } from '../core/theme/design-tokens';
 
 interface Props {
   index?: number;
@@ -43,8 +44,8 @@ export function AnimatedCard({
           {
             backgroundColor: theme.surface,
             borderColor: border,
-            opacity: pressed ? 0.93 : 1,
-            transform: [{ scale: pressed ? 0.99 : 1 }],
+            opacity: pressed ? OPACITY.cardPressed : 1,
+            transform: [{ scale: pressed ? SCALE.pressed : 1 }],
           },
           shadow(elevation),
           style,

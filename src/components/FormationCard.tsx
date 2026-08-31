@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { Formation } from '../core/models';
 import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { OPACITY, SCALE } from '../core/theme/design-tokens';
 import { ProgressBar } from './ProgressBar';
 import { Chip } from './Chip';
 
@@ -26,7 +27,7 @@ export function FormationCard({ formation, percent, index, onPress }: Props) {
         accessibilityLabel={`Formation ${formation.name}`}
         style={({ pressed }) => [
           styles.card,
-          { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
+          { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? OPACITY.cardPressed : 1, transform: [{ scale: pressed ? SCALE.pressed : 1 }] },
           shadow(5),
         ]}
       >
