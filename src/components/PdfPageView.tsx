@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { PdfPage } from '../../core/models';
+import type { PdfPage } from '../core/models';
 
 interface Props {
   page: PdfPage;

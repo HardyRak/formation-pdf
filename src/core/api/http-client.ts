@@ -4,7 +4,7 @@ import { handleRequest, API_BASE_URL, decodeJwt } from './backend/server';
 type Method = 'GET' | 'POST' | 'PATCH';
 
 interface RequestOptions {
-  body?: any;
+  body?: Record<string, unknown>;
   /** true pour les routes publiques (login / refresh). */
   anonymous?: boolean;
 }
@@ -25,7 +25,7 @@ export function configureHttpInterceptor(next: Interceptors) {
 }
 
 export function isApiError(error: unknown): error is ApiError {
-  return !!error && typeof error === 'object' && 'status' in (error as any) && 'code' in (error as any);
+  return !!error && typeof error === 'object' && 'status' in error && 'code' in error;
 }
 
 export function toApiError(error: unknown): ApiError {
@@ -94,6 +94,8 @@ async function request<T>(method: Method, path: string, options: RequestOptions 
 
 export const httpClient = {
   get: <T>(path: string, options?: RequestOptions) => request<T>('GET', path, options),
-  post: <T>(path: string, body?: any, options?: RequestOptions) => request<T>('POST', path, { ...options, body }),
-  patch: <T>(path: string, body?: any, options?: RequestOptions) => request<T>('PATCH', path, { ...options, body }),
+  post: <T>(path: string, body?: Record<string, unknown>, options?: RequestOptions) =>
+    request<T>('POST', path, { ...options, body }),
+  patch: <T>(path: string, body?: Record<string, unknown>, options?: RequestOptions) =>
+    request<T>('PATCH', path, { ...options, body }),
 };

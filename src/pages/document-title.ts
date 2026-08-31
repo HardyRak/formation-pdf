@@ -1,4 +1,4 @@
-import { catalogDb } from '../../core/api/backend/catalog';
+import { catalogDb } from '../core/api/backend/catalog';
 
 /** Résolution du titre d'un document à partir de son identifiant. */
 export function catalogTitleFor(documentId: string): string {

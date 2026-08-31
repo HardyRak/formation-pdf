@@ -297,13 +297,14 @@ export async function runTestSuite(onProgress?: (result: TestResult) => void): P
     try {
       await testCase.run();
       result = { suite: testCase.suite, name: testCase.name, passed: true, durationMs: Date.now() - started };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       result = {
         suite: testCase.suite,
         name: testCase.name,
         passed: false,
         durationMs: Date.now() - started,
-        detail: error?.message ?? String(error),
+        detail: message,
       };
     }
     results.push(result);

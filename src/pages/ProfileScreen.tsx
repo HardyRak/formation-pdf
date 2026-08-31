@@ -3,13 +3,18 @@ import { View, Text, StyleSheet, ScrollView, Pressable, useColorScheme } from 'r
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useTheme, spacing, radius, shadow } from '../../core/theme/theme';
-import { Button } from '../../ui/components/Button';
-import { authStore, useAuthStore } from '../../core/state/auth.store';
-import { progressionStore, useProgressionStore } from '../../core/state/progression.store';
-import { requestLogs } from '../../core/api/http-client';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTheme, spacing, radius, shadow } from '../core/theme/theme';
+import { Button } from '../components/Button';
+import { UserAvatar } from '../components/UserAvatar';
+import { authStore, useAuthStore } from '../core/state/auth.store';
+import { progressionStore, useProgressionStore } from '../core/state/progression.store';
+import { requestLogs } from '../core/api/http-client';
+import type { RootStackParamList } from '../navigation/types';
 
-export function ProfileScreen({ navigation }: any) {
+type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
+
+export function ProfileScreen({ navigation }: Props) {
   const theme = useTheme();
   const auth = useAuthStore();
   const progression = useProgressionStore();
@@ -35,11 +40,14 @@ export function ProfileScreen({ navigation }: any) {
           style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(5)]}
         >
           <View style={styles.userRow}>
-            <View style={[styles.avatar, { backgroundColor: auth.user?.avatarColor ?? theme.primary }]}>
-              <Text style={styles.avatarText}>
-                {(auth.user?.firstName?.[0] ?? '') + (auth.user?.lastName?.[0] ?? '')}
-              </Text>
-            </View>
+            <UserAvatar
+              firstName={auth.user?.firstName}
+              lastName={auth.user?.lastName}
+              color={auth.user?.avatarColor ?? theme.primary}
+              size={58}
+              borderRadius={20}
+              fontSize={19}
+            />
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={[styles.userName, { color: theme.text }]}>
                 {auth.user?.firstName} {auth.user?.lastName}
@@ -184,8 +192,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 27, fontWeight: '900', letterSpacing: -0.6 },
   card: { borderRadius: radius.lg, borderWidth: 1, padding: spacing.md },
   userRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatar: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '900', fontSize: 19 },
   userName: { fontSize: 18, fontWeight: '800' },
   userMail: { fontSize: 13 },
   roleTag: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, marginTop: 2 },

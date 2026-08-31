@@ -1,16 +1,16 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useTheme, spacing, radius } from '../../core/theme/theme';
-import { SearchBar } from '../../ui/components/SearchBar';
-import { LoadingState, MessageState } from '../../ui/components/StateViews';
-import { FormationCard } from './FormationCard';
-import { formationStore, useFormationStore } from '../../core/state/formation.store';
-import { progressionStore, useProgressionStore } from '../../core/state/progression.store';
-import { useAuthStore } from '../../core/state/auth.store';
-import type { RootStackParamList } from '../../navigation/types';
+import { useTheme, spacing, radius } from '../core/theme/theme';
+import { SearchBar } from '../components/SearchBar';
+import { UserAvatar } from '../components/UserAvatar';
+import { LoadingState, MessageState } from '../components/StateViews';
+import { FormationCard } from '../components/FormationCard';
+import { formationStore, useFormationStore } from '../core/state/formation.store';
+import { progressionStore, useProgressionStore } from '../core/state/progression.store';
+import { useAuthStore } from '../core/state/auth.store';
+import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
 
@@ -63,15 +63,15 @@ export function FormationsScreen({ navigation }: Props) {
                 <Text style={[styles.hello, { color: theme.textMuted }]}>Bonjour {firstName} 👋</Text>
                 <Text style={[styles.title, { color: theme.text }]}>Mes formations</Text>
               </View>
-              <Pressable
-                onPress={() => (navigation as any).navigate('ProfileTab')}
-                style={[styles.avatar, { backgroundColor: auth.user?.avatarColor ?? theme.primary }]}
-                accessibilityLabel={'Profil'}
-              >
-                <Text style={styles.avatarText}>
-                  {(auth.user?.firstName?.[0] ?? '?') + (auth.user?.lastName?.[0] ?? '')}
-                </Text>
-              </Pressable>
+              <UserAvatar
+                firstName={auth.user?.firstName}
+                lastName={auth.user?.lastName}
+                color={auth.user?.avatarColor ?? theme.primary}
+                size={44}
+                borderRadius={16}
+                fontSize={15}
+                onPress={() => navigation.navigate('ProfileTab' as never)}
+              />
             </View>
 
             {state.status === 'success' && state.items.length > 0 ? (
@@ -142,8 +142,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   hello: { fontSize: 13.5, fontWeight: '600' },
   title: { fontSize: 27, fontWeight: '900', letterSpacing: -0.6 },
-  avatar: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '900', fontSize: 15 },
   banner: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: spacing.md, borderRadius: radius.lg },
   bannerLabel: { color: 'rgba(255,255,255,0.72)', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
   bannerValue: { color: '#fff', fontSize: 16.5, fontWeight: '800' },

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, type DimensionValue } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme, radius, spacing } from '../../core/theme/theme';
+import { useTheme, radius, spacing } from '../core/theme/theme';
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   const theme = useTheme();
@@ -14,7 +14,7 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
             key={index}
             style={{
               height: index === 0 ? 14 : 10,
-              width: ((index === 0 ? 70 : 90 - index * 18) + '%') as any,
+              width: `${index === 0 ? 70 : 90 - index * 18}%` as DimensionValue,
               backgroundColor: theme.surfaceAlt,
               borderRadius: radius.sm,
             }}

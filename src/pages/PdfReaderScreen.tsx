@@ -10,19 +10,21 @@ import {
   useWindowDimensions,
   Modal,
   BackHandler,
+  type DimensionValue,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { radius, spacing } from '../../core/theme/theme';
-import { MessageState } from '../../ui/components/StateViews';
-import { PdfPageView } from './PdfPageView';
-import { pdfReaderStore, usePdfReaderStore, ZOOM_STEPS } from '../../core/state/pdf-reader.store';
-import { progressionStore } from '../../core/state/progression.store';
-import { formationStore } from '../../core/state/formation.store';
-import type { RootStackParamList } from '../../navigation/types';
+import { radius, spacing } from '../core/theme/theme';
+import { MessageState } from '../components/StateViews';
+import { PdfPageView } from '../components/PdfPageView';
+import { pdfReaderStore, usePdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
+import { progressionStore } from '../core/state/progression.store';
+import { formationStore } from '../core/state/formation.store';
+import type { PdfPage } from '../core/models';
+import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reader'>;
 
@@ -82,7 +84,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   );
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 55 }).current;
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ReadonlyArray<{ item: PdfPage }> }) => {
     const first = viewableItems?.[0];
     if (first?.item?.number) pdfReaderStore.setPage(first.item.number);
   }).current;
@@ -150,7 +152,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
               </Pressable>
             </View>
             <View style={styles.topProgressTrack}>
-              <View style={[styles.topProgressFill, { width: ((percent + '%') as any), backgroundColor: accent }]} />
+              <View style={[styles.topProgressFill, { width: `${percent}%` as DimensionValue, backgroundColor: accent }]} />
             </View>
           </SafeAreaView>
         </Animated.View>
@@ -296,7 +298,9 @@ export function PdfReaderScreen({ route, navigation }: Props) {
             keyExtractor={(item) => `outline-${item.number}`}
             contentContainerStyle={{ paddingBottom: spacing.xl }}
             renderItem={({ item }) => {
-              const heading = item.blocks.find((b) => b.type === 'h1' || b.type === 'h2') as any;
+              const heading = item.blocks.find(
+                (b): b is { type: 'h1' | 'h2'; text: string } => b.type === 'h1' || b.type === 'h2',
+              );
               const readMark = progress?.pagesRead.includes(item.number);
               return (
                 <Pressable

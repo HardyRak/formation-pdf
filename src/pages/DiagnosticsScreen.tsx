@@ -3,12 +3,16 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useTheme, spacing, radius, shadow } from '../../core/theme/theme';
-import { ScreenHeader } from '../../ui/components/ScreenHeader';
-import { Button } from '../../ui/components/Button';
-import { runTestSuite, TEST_COUNT, type TestResult } from '../../testing/test-suite';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTheme, spacing, radius, shadow } from '../core/theme/theme';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { Button } from '../components/Button';
+import { runTestSuite, TEST_COUNT, type TestResult } from '../testing/test-suite';
+import type { RootStackParamList } from '../navigation/types';
 
-export function DiagnosticsScreen({ navigation }: any) {
+type Props = NativeStackScreenProps<RootStackParamList, 'Diagnostics'>;
+
+export function DiagnosticsScreen({ navigation }: Props) {
   const theme = useTheme();
   const [results, setResults] = useState<TestResult[]>([]);
   const [running, setRunning] = useState(false);
