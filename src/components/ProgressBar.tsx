@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, radius } from '../../core/theme/theme';
+import { View, Text, StyleSheet, DimensionValue } from 'react-native';
+import { useTheme, radius } from '../core/theme/theme';
 
 interface Props {
   percent: number;
@@ -26,7 +26,7 @@ export function ProgressBar({ percent, color, height = 8, showLabel = false, lab
       <View style={[styles.track, { backgroundColor: theme.surfaceAlt, height, borderRadius: height }]}>
         <View
           style={{
-            width: (value + '%') as any,
+            width: `${value}%` as DimensionValue,
             height: '100%',
             backgroundColor: value === 100 ? theme.success : tint,
             borderRadius: radius.pill,

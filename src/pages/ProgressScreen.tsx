@@ -3,14 +3,17 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform } from '
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useTheme, spacing, radius, shadow } from '../../core/theme/theme';
-import { ProgressBar } from '../../ui/components/ProgressBar';
-import { MessageState } from '../../ui/components/StateViews';
-import { formationStore, useFormationStore } from '../../core/state/formation.store';
-import { progressionStore, useProgressionStore } from '../../core/state/progression.store';
-import { catalogTitleFor } from './document-title';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTheme, spacing, radius, shadow } from '../core/theme/theme';
+import { ProgressBar, MessageState } from '../components';
+import { formationStore, useFormationStore } from '../core/state/formation.store';
+import { progressionStore, useProgressionStore } from '../core/state/progression.store';
+import type { RootStackParamList } from '../navigation/types';
+import { catalogTitleFor } from '../utils/document-title';
 
-export function ProgressScreen({ navigation }: any) {
+type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
+
+export function ProgressScreen({ navigation }: Props) {
   const theme = useTheme();
   const formations = useFormationStore();
   const progression = useProgressionStore();
@@ -86,7 +89,7 @@ export function ProgressScreen({ navigation }: any) {
                     ]}
                   >
                     <View style={[styles.rowIcon, { backgroundColor: formation.color + (theme.mode === 'dark' ? '2E' : '18') }]}>
-                      <Ionicons name={formation.icon as any} size={19} color={formation.color} />
+                      <Ionicons name={formation.icon} size={19} color={formation.color} />
                     </View>
                     <View style={{ flex: 1, gap: 7 }}>
                       <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>
