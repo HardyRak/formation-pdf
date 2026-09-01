@@ -10,7 +10,8 @@ import { levelStore, useLevelStore } from '../core/state/level.store';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { useAuthStore } from '../core/state/auth.store';
-import { hasLevelAccess, hasFormationAccess, getAccessDeniedMessage } from '../core/security/access';
+import { getAccessDeniedMessage } from '../core/security/access';
+import { hasLevelAccess, hasFormationAccess, useAccessStore } from '../core/state/access.store';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Levels'>;
@@ -20,6 +21,7 @@ export function LevelsScreen({ route, navigation }: Props) {
   const theme = useTheme();
   const state = useLevelStore();
   const auth = useAuthStore();
+  useAccessStore();
   useFormationStore();
   useProgressionStore();
 

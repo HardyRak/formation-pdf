@@ -25,7 +25,7 @@ export const FORMATION_ACCESS: Record<UserId, FormationId[]> = {
  * Si une formation est verrouillée, tous ses niveaux sont verrouillés
  * Si une formation est accessible, certains niveaux peuvent être verrouillés
  */
-const LEVEL_ACCESS: Record<UserId, Record<FormationId, LevelId[]>> = {
+export const LEVEL_ACCESS: Record<UserId, Record<FormationId, LevelId[]>> = {
   'usr-1': {
     // HSE : accès complet
     'f-hse': ['l-hse-1', 'l-hse-2', 'l-hse-3'],

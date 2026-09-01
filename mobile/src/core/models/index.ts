@@ -94,6 +94,15 @@ export interface ProgressionSnapshot {
   updatedAt: number;
 }
 
+/** Résumé des droits d'accès (GET /auth/me/access). */
+export interface AccessSummary {
+  role: 'LEARNER' | 'MANAGER';
+  /** `['*']` = accès complet (manager). */
+  formations: string[];
+  /** Niveaux accessibles par formation (`[]` = tous les niveaux de la formation). */
+  levels: Record<string, string[]>;
+}
+
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface ApiError {

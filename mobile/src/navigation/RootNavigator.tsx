@@ -10,6 +10,7 @@ import { authStore, useAuthStore } from '../core/state/auth.store';
 import { formationStore } from '../core/state/formation.store';
 import { levelStore } from '../core/state/level.store';
 import { documentStore } from '../core/state/document.store';
+import { accessStore } from '../core/state/access.store';
 import { LoginScreen } from '../pages/LoginScreen';
 import { FormationsScreen } from '../pages/FormationsScreen';
 import { LevelsScreen } from '../pages/LevelsScreen';
@@ -85,6 +86,7 @@ export function RootNavigator() {
       formationStore.reset();
       levelStore.reset();
       documentStore.reset();
+      accessStore.reset();
     }
   }, [authenticated]);
 

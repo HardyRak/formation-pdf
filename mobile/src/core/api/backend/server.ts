@@ -1,13 +1,12 @@
 import type { ApiError, AuthSession, User } from '../../models';
 import { catalogDb } from './catalog';
+import { FORMATION_ACCESS, LEVEL_ACCESS } from '../../security/access';
 
 /**
  * Simulation locale du backend NestJS (contrôleurs REST + JWT).
- * En production, `API_BASE_URL` pointe vers le service Nest et cette
- * couche disparaît : seule l'implementation de `httpClient.request` change.
+ * Utilisée uniquement en mode `EXPO_PUBLIC_API_MODE=mock`. En mode `remote`,
+ * le transport HTTP réel est géré par `http-client.ts` (URL dans `config/env.ts`).
  */
-
-export const API_BASE_URL = 'https://api.pdftrain.internal/v1';
 
 const ACCESS_TTL_MS = 15 * 60 * 1000;
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -186,6 +185,11 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return requireAuth(token);
   }
 
+  if (method === 'GET' && path === '/auth/me/access') {
+    await latency(180);
+    return accessSummaryFor(requireAuth(token));
+  }
+
   // ---- Ressources protégées -------------------------------------
   requireAuth(token);
 
@@ -232,6 +236,19 @@ export async function handleRequest({ method, path, body, token }: BackendReques
   }
 
   throw apiError(404, 'NOT_FOUND', `Route inconnue : ${method} ${path}`);
+}
+
+/** Simulation du résumé des droits (équivalent de GET /auth/me/access). */
+function accessSummaryFor(user: User) {
+  if (user.role === 'MANAGER') {
+    return { role: 'MANAGER' as const, formations: ['*'], levels: {} };
+  }
+  const formations = FORMATION_ACCESS[user.id] ?? [];
+  const levels: Record<string, string[]> = {};
+  for (const formationId of formations) {
+    levels[formationId] = LEVEL_ACCESS[user.id]?.[formationId] ?? [];
+  }
+  return { role: user.role, formations, levels };
 }
 
 export const DEMO_CREDENTIALS = {

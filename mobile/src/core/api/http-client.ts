@@ -1,5 +1,7 @@
 import type { ApiError } from '../models';
-import { handleRequest, API_BASE_URL, decodeJwt } from './backend/server';
+import { API_BASE_URL, API_MODE } from '../config/env';
+import { decodeJwt } from './jwt';
+import { handleRequest } from './backend/server';
 
 type Method = 'GET' | 'POST' | 'PATCH';
 
@@ -33,10 +35,17 @@ export function toApiError(error: unknown): ApiError {
   return { status: 0, code: 'NETWORK_ERROR', message: 'Connexion impossible. Vérifiez votre réseau.' };
 }
 
+/**
+ * Vérifie l'expiration d'un jeton JWT.
+ * La claim `exp` est en SECONDES (JWT standard signé par le backend NestJS).
+ * Le mock historique utilisait des millisecondes : on normalise les deux formats.
+ */
 export function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
   const payload = decodeJwt(token);
-  return !payload || payload.exp <= Date.now();
+  if (!payload || typeof payload.exp !== 'number') return true;
+  const expMs = payload.exp < 1e12 ? payload.exp * 1000 : payload.exp;
+  return expMs <= Date.now();
 }
 
 export interface RequestLog {
@@ -50,17 +59,58 @@ export interface RequestLog {
 const logs: RequestLog[] = [];
 export const requestLogs = () => logs.slice(0, 25);
 
-async function execute<T>(method: Method, path: string, options: RequestOptions, token: string | null): Promise<T> {
+function record(method: Method, path: string, status: number, durationMs: number) {
+  logs.unshift({ method, path, status, durationMs, at: Date.now() });
+  if (logs.length > 40) logs.pop();
+}
+
+/** Transport réel : requête HTTP vers l'API NestJS (back/). */
+async function remoteRequest<T>(
+  method: Method,
+  path: string,
+  options: RequestOptions,
+  token: string | null,
+): Promise<T> {
+  const url = `${API_BASE_URL}${path}`;
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const data: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    if (isApiError(data)) throw data;
+    throw {
+      status: response.status,
+      code: 'HTTP_ERROR',
+      message: `Erreur HTTP ${response.status}`,
+    } satisfies ApiError;
+  }
+  return data as T;
+}
+
+async function execute<T>(
+  method: Method,
+  path: string,
+  options: RequestOptions,
+  token: string | null,
+): Promise<T> {
   const started = Date.now();
   try {
-    const result = await handleRequest({ method, path, body: options.body, token });
-    logs.unshift({ method, path, status: 200, durationMs: Date.now() - started, at: started });
-    if (logs.length > 40) logs.pop();
+    const result =
+      API_MODE === 'mock'
+        ? await handleRequest({ method, path, body: options.body, token })
+        : await remoteRequest<T>(method, path, options, token);
+    record(method, path, 200, Date.now() - started);
     return result as T;
   } catch (error) {
     const apiErr = toApiError(error);
-    logs.unshift({ method, path, status: apiErr.status, durationMs: Date.now() - started, at: started });
-    if (logs.length > 40) logs.pop();
+    record(method, path, apiErr.status, Date.now() - started);
     throw apiErr;
   }
 }
@@ -70,9 +120,6 @@ async function execute<T>(method: Method, path: string, options: RequestOptions,
  * normalisation des erreurs. Équivalent de HttpInterceptorFn côté Angular.
  */
 async function request<T>(method: Method, path: string, options: RequestOptions = {}): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  void url; // trace/debug
-
   if (options.anonymous) {
     return execute<T>(method, path, options, null);
   }

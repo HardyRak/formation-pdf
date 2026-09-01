@@ -11,7 +11,8 @@ import { UserAvatar } from '../components/UserAvatar';
 import { authStore, useAuthStore } from '../core/state/auth.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { requestLogs } from '../core/api/http-client';
-import { getAccessibleFormations, FORMATION_LABELS } from '../core/security/access';
+import { FORMATION_LABELS } from '../core/security/access';
+import { getAccessibleFormations, hasFormationAccess, useAccessStore } from '../core/state/access.store';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -22,6 +23,7 @@ export function ProfileScreen({ navigation }: Props) {
   const auth = useAuthStore();
   const progression = useProgressionStore();
   const formations = useFormationStore();
+  const access = useAccessStore();
   const scheme = useColorScheme();
 
   const expiresIn = useMemo(() => {
@@ -34,12 +36,18 @@ export function ProfileScreen({ navigation }: Props) {
   const documentsTracked = Object.keys(progression.documents).length;
   const logs = requestLogs().slice(0, 5);
 
+  const allFormations = formations.items.length > 0 ? formations.items : formationStore.state().items;
+
   const accessibleFormations = useMemo(() => {
     return getAccessibleFormations(auth.user?.id);
-  }, [auth.user?.id]);
+  }, [auth.user?.id, access]);
 
-  const allFormations = formations.items.length > 0 ? formations.items : formationStore.state().items;
-  const lockedFormations = allFormations.filter((f) => !accessibleFormations.includes(f.id));
+  const accessibleCount = useMemo(
+    () => allFormations.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length,
+    [allFormations, auth.user?.id, access],
+  );
+
+  const lockedFormations = allFormations.filter((f) => !hasFormationAccess(auth.user?.id, f.id));
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
@@ -83,7 +91,7 @@ export function ProfileScreen({ navigation }: Props) {
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Accès aux formations</Text>
               <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
-                {accessibleFormations.length}/{allFormations.length || 4} formations accessibles
+                {accessibleCount}/{allFormations.length || 4} formations accessibles
               </Text>
             </View>
           </View>
@@ -91,7 +99,7 @@ export function ProfileScreen({ navigation }: Props) {
           <View style={{ gap: 8 }}>
             {allFormations.length > 0 ? (
               allFormations.map((f) => {
-                const hasAccess = accessibleFormations.includes(f.id);
+                const hasAccess = hasFormationAccess(auth.user?.id, f.id);
                 return (
                   <View
                     key={f.id}
@@ -122,7 +130,7 @@ export function ProfileScreen({ navigation }: Props) {
               })
             ) : (
               <>
-                {accessibleFormations.map((id) => (
+                {accessibleFormations.filter((id) => id !== '*').map((id) => (
                   <View key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Ionicons name={'checkmark-circle'} size={16} color={theme.success} />
                     <Text style={{ fontSize: 13, color: theme.text }}>{FORMATION_LABELS[id] ?? id}</Text>

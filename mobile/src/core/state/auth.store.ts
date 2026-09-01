@@ -4,6 +4,7 @@ import { configureHttpInterceptor, isTokenExpired, toApiError } from '../api/htt
 import { secureStorage } from '../storage/secure-storage';
 import { signalStore, useSignalStore } from './create-store';
 import { progressionStore } from './progression.store';
+import { accessStore } from './access.store';
 
 const SESSION_KEY = 'pdftrain.session';
 
@@ -104,6 +105,7 @@ export const authStore = {
         }
       }
       await progressionStore.hydrate(session.user.id);
+      await accessStore.load();
       store.patchState({ status: 'success', bootstrapping: false });
     } catch {
       await persist(null);
@@ -124,6 +126,7 @@ export const authStore = {
         lastEmail: session.user.email,
       });
       await progressionStore.hydrate(session.user.id);
+      await accessStore.load();
       return true;
     } catch (error) {
       store.patchState({ status: 'error', error: toApiError(error), session: null, user: null });
@@ -142,6 +145,7 @@ export const authStore = {
     }
     await persist(null);
     progressionStore.detach();
+    accessStore.reset();
     store.patchState({
       status: 'idle',
       session: null,

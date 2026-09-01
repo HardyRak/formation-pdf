@@ -10,7 +10,8 @@ import { FormationCard } from '../components/FormationCard';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { useAuthStore } from '../core/state/auth.store';
-import { hasFormationAccess, getAccessDeniedMessage } from '../core/security/access';
+import { getAccessDeniedMessage } from '../core/security/access';
+import { hasFormationAccess, useAccessStore } from '../core/state/access.store';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -19,6 +20,7 @@ export function FormationsScreen({ navigation }: Props) {
   const theme = useTheme();
   const state = useFormationStore();
   const auth = useAuthStore();
+  const access = useAccessStore();
   useProgressionStore();
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function FormationsScreen({ navigation }: Props) {
 
   const accessibleCount = useMemo(() => {
     return state.items.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length;
-  }, [state.items, auth.user?.id]);
+  }, [state.items, auth.user?.id, access]);
 
   const lockedCount = state.items.length - accessibleCount;
 
