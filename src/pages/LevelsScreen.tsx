@@ -47,7 +47,7 @@ export function LevelsScreen({ route, navigation }: Props) {
         isFormationLocked ? getAccessDeniedMessage('formation') : getAccessDeniedMessage('level'),
         [
           { text: 'Compris', style: 'default' },
-          { text: 'Voir profil', onPress: () => (navigation as any).navigate('ProfileTab') },
+          { text: 'Voir profil', onPress: () => (navigation as any).navigate('Tabs', { screen: 'ProfileTab' }) },
         ],
       );
       return;

@@ -48,7 +48,7 @@ export function FormationsScreen({ navigation }: Props) {
           getAccessDeniedMessage('formation'),
           [
             { text: 'Compris', style: 'default' },
-            { text: 'Voir profil', onPress: () => navigation.navigate('ProfileTab' as never) },
+            { text: 'Voir profil', onPress: () => (navigation as any).navigate('Tabs', { screen: 'ProfileTab' }) },
           ],
         );
         return;
@@ -58,6 +58,10 @@ export function FormationsScreen({ navigation }: Props) {
     },
     [navigation, auth.user?.id],
   );
+
+  const goToProfile = useCallback(() => {
+    (navigation as any).navigate('Tabs', { screen: 'ProfileTab' });
+  }, [navigation]);
 
   const firstName = auth.user?.firstName ?? '';
 
@@ -94,7 +98,7 @@ export function FormationsScreen({ navigation }: Props) {
                 size={44}
                 borderRadius={16}
                 fontSize={15}
-                onPress={() => navigation.navigate('ProfileTab' as never)}
+                onPress={goToProfile}
               />
             </View>
 
