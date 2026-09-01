@@ -11,6 +11,7 @@ import { envValidationSchema } from './config/env.validation';
 import { AuthModule } from './auth/auth.module';
 import { AccessModule } from './access/access.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { ProgressionModule } from './progression/progression.module';
 import { HealthModule } from './health/health.module';
 import { LogModule } from './logs/log.module';
 
@@ -48,6 +49,7 @@ import { LogModule } from './logs/log.module';
     AuthModule,
     AccessModule,
     CatalogModule,
+    ProgressionModule,
     HealthModule,
     LogModule,
   ],

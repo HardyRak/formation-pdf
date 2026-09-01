@@ -94,6 +94,12 @@ export interface ProgressionSnapshot {
   updatedAt: number;
 }
 
+/** Réponse des routes DELETE /progression du backend. */
+export interface ProgressionResetResult {
+  success: boolean;
+  deletedCount?: number;
+}
+
 /** Résumé des droits d'accès (GET /auth/me/access). */
 export interface AccessSummary {
   role: 'LEARNER' | 'MANAGER';

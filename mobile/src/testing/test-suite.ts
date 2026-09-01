@@ -5,8 +5,9 @@ import { pdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
 import { catalogDb } from '../core/api/backend/catalog';
 import { handleRequest, decodeJwt, DEMO_CREDENTIALS, b64 } from '../core/api/backend/server';
 import { toApiError } from '../core/api/http-client';
+import { mergeProgressEntries } from '../core/utils/progression-merge';
 import { ROUTE_NAMES } from '../navigation/routes';
-import type { AuthSession, Formation, Level, TrainingDocument } from '../core/models';
+import type { AuthSession, DocumentProgress, Formation, Level, TrainingDocument } from '../core/models';
 
 export interface TestResult {
   suite: string;
@@ -107,6 +108,104 @@ const cases: TestCase[] = [
       equal(progressionPercent(0, 0), 0, 'Division par z\u00e9ro non g\u00e9r\u00e9e');
       equal(progressionPercent(15, 10), 100, 'Valeur non born\u00e9e');
       equal(progressionPercent(1, 3), 33, 'Arrondi incorrect');
+    },
+  },
+
+  // ---------------- Synchronisation serveur ----------------------
+  {
+    suite: 'Synchronisation',
+    name: 'La fusion de progression est convergente (union des pages, LWW)',
+    run: () => {
+      const base = (updatedAt: number, pagesRead: number[], lastPage: number): DocumentProgress => ({
+        documentId: 'doc-x',
+        levelId: 'l-1',
+        formationId: 'f-1',
+        lastPage,
+        pageCount: 10,
+        pagesRead,
+        percent: Math.round((pagesRead.length / 10) * 100),
+        completed: pagesRead.length >= 10,
+        updatedAt,
+      });
+      const ancien = base(1_000, [1, 2], 2);
+      const recent = base(2_000, [2, 3, 4], 4);
+      const fusion = mergeProgressEntries(ancien, recent);
+      equal(fusion.pagesRead.length, 4, 'Les pages ne doivent jamais \u00eatre perdues');
+      equal(fusion.lastPage, 4, 'La position doit venir de l\u2019entr\u00e9e la plus r\u00e9cente');
+      equal(fusion.percent, 40, 'Le pourcentage doit \u00eatre recalcul\u00e9');
+      equal(fusion.updatedAt, 2_000, 'updatedAt doit \u00eatre le plus r\u00e9cent');
+      // Commutativit\u00e9 : l'ordre de fusion ne change pas le r\u00e9sultat.
+      const inverse = mergeProgressEntries(recent, ancien);
+      equal(JSON.stringify(inverse), JSON.stringify(fusion), 'La fusion doit \u00eatre commutative');
+    },
+  },
+  {
+    suite: 'Synchronisation',
+    name: 'Le mock persiste la progression en \u00ab base \u00bb (PUT puis GET)',
+    run: async () => {
+      const login = (await handleRequest({
+        method: 'POST',
+        path: '/auth/login',
+        body: DEMO_CREDENTIALS,
+      })) as AuthSession;
+      const token = login.accessToken;
+
+      const saved = (await handleRequest({
+        method: 'PUT',
+        path: '/progression/documents/doc-sync-test',
+        token,
+        body: {
+          levelId: 'l-1',
+          formationId: 'f-1',
+          lastPage: 5,
+          pageCount: 10,
+          pagesRead: [1, 2, 5],
+          percent: 30,
+          completed: false,
+          updatedAt: Date.now(),
+        },
+      })) as DocumentProgress;
+      equal(saved.percent, 30, 'Upsert invalide');
+
+      // Rejeu idempotent avec une page de plus : fusion attendue.
+      const merged = (await handleRequest({
+        method: 'PUT',
+        path: '/progression/documents/doc-sync-test',
+        token,
+        body: {
+          levelId: 'l-1',
+          formationId: 'f-1',
+          lastPage: 6,
+          pageCount: 10,
+          pagesRead: [1, 2, 5, 6],
+          percent: 40,
+          completed: false,
+          updatedAt: Date.now() + 1,
+        },
+      })) as DocumentProgress;
+      equal(merged.pagesRead.length, 4, 'L\u2019union des pages doit \u00eatre conserv\u00e9e');
+
+      const list = (await handleRequest({ method: 'GET', path: '/progression', token })) as DocumentProgress[];
+      assert(list.some((e) => e.documentId === 'doc-sync-test'), 'Entr\u00e9e absente de la base');
+
+      const reset = (await handleRequest({
+        method: 'DELETE',
+        path: '/progression/documents/doc-sync-test',
+        token,
+      })) as { success: boolean };
+      equal(reset.success, true, 'Reset document invalide');
+    },
+  },
+  {
+    suite: 'Synchronisation',
+    name: 'La progression refus\u00e9e sans authentification',
+    run: async () => {
+      try {
+        await handleRequest({ method: 'GET', path: '/progression' });
+        throw new Error('La route progression devrait \u00eatre prot\u00e9g\u00e9e');
+      } catch (error) {
+        equal(toApiError(error).status, 401, 'Statut HTTP incorrect');
+      }
     },
   },
 

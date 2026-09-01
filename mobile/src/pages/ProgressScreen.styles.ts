@@ -14,6 +14,8 @@ export const styles = StyleSheet.create({
   heroStatValue: { color: '#fff', fontSize: 19, fontWeight: '900' },
   heroStatLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700' },
   sectionTitle: { fontSize: 17, fontWeight: '800', marginTop: 4 },
+  syncBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, marginTop: -spacing.xs },
+  syncBadgeText: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1 },
   rowIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontSize: 14.5, fontWeight: '700' },

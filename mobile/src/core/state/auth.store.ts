@@ -144,7 +144,8 @@ export const authStore = {
       }
     }
     await persist(null);
-    progressionStore.detach();
+    // Dernier push de la progression en attente (3 s max), puis purge locale.
+    await progressionStore.detach();
     accessStore.reset();
     store.patchState({
       status: 'idle',
