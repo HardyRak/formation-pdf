@@ -1,42 +1,30 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Monorepo formation-pdf — ignore global
 
-# dependencies
+# Dependencies
 node_modules/
 
-# Expo
-.expo/
+# Environnement (jamais commité, exemples versionnés)
+.env
+.env.*
+!.env.example
+
+# Builds
 dist/
+build/
 web-build/
-expo-env.d.ts
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
+# Logs
+*.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
+# TypeScript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
-.vercel
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
