@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl } from 'react-native';
+import { View, Text, FlatList, RefreshControl, Alert } from 'react-native';
 import { styles } from './FormationsScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useTheme, spacing, radius } from '../core/theme/theme';
+import { useTheme, spacing } from '../core/theme/theme';
 import { SearchBar, LoadingState, MessageState } from '../components';
 import { UserAvatar } from '../components/UserAvatar';
 import { FormationCard } from '../components/FormationCard';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { useAuthStore } from '../core/state/auth.store';
+import { hasFormationAccess, getAccessDeniedMessage } from '../core/security/access';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -32,12 +33,30 @@ export function FormationsScreen({ navigation }: Props) {
     return totalPages ? Math.round((read / totalPages) * 100) : 0;
   }, [state.items, progressionStore.state().documents]);
 
+  const accessibleCount = useMemo(() => {
+    return state.items.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length;
+  }, [state.items, auth.user?.id]);
+
+  const lockedCount = state.items.length - accessibleCount;
+
   const openFormation = useCallback(
     (formationId: string) => {
+      const hasAccess = hasFormationAccess(auth.user?.id, formationId);
+      if (!hasAccess) {
+        Alert.alert(
+          'Accès restreint 🔒',
+          getAccessDeniedMessage('formation'),
+          [
+            { text: 'Compris', style: 'default' },
+            { text: 'Voir profil', onPress: () => (navigation as any).navigate('Tabs', { screen: 'ProfileTab' }) },
+          ],
+        );
+        return;
+      }
       formationStore.select(formationId);
       navigation.navigate('Levels', { formationId });
     },
-    [navigation],
+    [navigation, auth.user?.id],
   );
 
   const goToProfile = useCallback(() => {
@@ -66,6 +85,11 @@ export function FormationsScreen({ navigation }: Props) {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.hello, { color: theme.textMuted }]}>Bonjour {firstName} 👋</Text>
                 <Text style={[styles.title, { color: theme.text }]}>Mes formations</Text>
+                {lockedCount > 0 ? (
+                  <Text style={{ fontSize: 12, color: theme.textFaint, marginTop: 2 }}>
+                    {accessibleCount} accessible{accessibleCount > 1 ? 's' : ''} • {lockedCount} verrouillée{lockedCount > 1 ? 's' : ''} 🔒
+                  </Text>
+                ) : null}
               </View>
               <UserAvatar
                 firstName={auth.user?.firstName}
@@ -84,7 +108,7 @@ export function FormationsScreen({ navigation }: Props) {
                   <Text style={styles.bannerLabel}>PROGRESSION GLOBALE</Text>
                   <Text style={styles.bannerValue}>{globalPercent} % du catalogue parcouru</Text>
                   <Text style={styles.bannerHint}>
-                    {state.items.length} formations • {state.items.reduce((s, f) => s + f.documentsCount, 0)} documents
+                    {accessibleCount}/{state.items.length} formations accessibles • {state.items.reduce((s, f) => s + f.documentsCount, 0)} documents
                   </Text>
                 </View>
                 <View style={styles.bannerCircle}>
@@ -98,45 +122,48 @@ export function FormationsScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           state.status === 'loading' ? (
-            <LoadingState count={3} label={'Chargement des formations\u2026'} />
+            <LoadingState count={3} label={'Chargement des formations…'} />
           ) : state.status === 'error' ? (
             <MessageState
               icon={'cloud-offline-outline'}
               tone={'danger'}
               title={'Chargement impossible'}
               message={state.error?.message ?? 'Une erreur est survenue.'}
-              actionLabel={'R\u00e9essayer'}
+              actionLabel={'Réessayer'}
               onAction={() => void formationStore.load()}
             />
           ) : state.query ? (
             <MessageState
               icon={'search-outline'}
-              title={'Aucun r\u00e9sultat'}
-              message={`Aucune formation ne correspond \u00e0 \u00ab ${state.query} \u00bb.`}
+              title={'Aucun résultat'}
+              message={`Aucune formation ne correspond à « ${state.query} ».`}
               actionLabel={'Effacer la recherche'}
               onAction={() => formationStore.setQuery('')}
             />
           ) : (
             <MessageState
               icon={'library-outline'}
-              title={'Aucune formation attribu\u00e9e'}
-              message={'Votre responsable de formation ne vous a encore assign\u00e9 aucun parcours.'}
+              title={'Aucune formation attribuée'}
+              message={'Votre responsable de formation ne vous a encore assigné aucun parcours.'}
               actionLabel={'Actualiser'}
               onAction={() => void formationStore.load({ refresh: true })}
             />
           )
         }
-        renderItem={({ item, index }) => (
-          <FormationCard
-            formation={item}
-            index={index}
-            percent={progressionStore.formationPercent(item.id, item.totalPages)}
-            onPress={() => openFormation(item.id)}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const hasAccess = hasFormationAccess(auth.user?.id, item.id);
+          return (
+            <FormationCard
+              formation={item}
+              index={index}
+              locked={!hasAccess}
+              percent={progressionStore.formationPercent(item.id, item.totalPages)}
+              onPress={() => openFormation(item.id)}
+            />
+          );
+        }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
       />
     </SafeAreaView>
   );
 }
-
