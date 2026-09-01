@@ -6,9 +6,24 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { useScreenCaptureProtection } from './src/core/security/screenCapture';
+
+function AppContent() {
+  // Bloque toute capture d'écran et enregistrement vidéo app-wide
+  // Android: FLAG_SECURE | iOS: secure UITextField + app switcher blur
+  useScreenCaptureProtection();
+
+  const scheme = useColorScheme();
+
+  return (
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <RootNavigator />
+    </>
+  );
+}
 
 export default function App() {
-  const scheme = useColorScheme();
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
 
   if (!fontsLoaded) return null;
@@ -16,8 +31,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-        <RootNavigator />
+        <AppContent />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
