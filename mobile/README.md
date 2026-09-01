@@ -81,11 +81,35 @@ qui est **16 KB compatible par défaut**. Pour garantir le build :
   fusionné (qui retire de toute façon `maxSdkVersion`), tout en gardant le même
   résultat.
 
+## Build natif Android : `libworklets.so` manquant (correctif `patch-package`)
+
+Avec Expo SDK 57 + `react-native-worklets@0.10.1` + `react-native-reanimated@4.5.1`,
+`expo-modules-core` tente de lier `libworklets.so` (via prefab) pendant
+`:expo-modules-core:buildCMakeDebug[x86_64]`. Le reanimated corrige déjà
+l'ordre en faisant dépendre son `externalNativeBuild*` de celui de worklets,
+mais `expo-modules-core` ne dépendait que de `mergeDebugNativeLibs`, ce qui
+laissait `buildCMake` partir avant que le `.so` soit compilé :
+
+```
+ninja: error: '.../react-native-worklets/android/build/intermediates/cxx/.../libworklets.so',
+needed by '.../libexpo-modules-core.so', missing and no known rule to make it
+```
+
+C'est un bug connu (expo/expo#42893, software-mansion/react-native-reanimated#9151).
+Ce projet applique donc un **correctif local** à `expo-modules-core` via
+`patch-package` (`patches/expo-modules-core+57.0.11.patch`) : il ajoute
+`buildCMakeDebug` → `dependsOn(externalNativeBuildDebug)` (et l'équivalent
+RelWithDebInfo/Release), en miroir du correctif upstream de reanimated.
+
+`npm install` applique automatiquement le patch grâce au script
+`postinstall: patch-package`. **Ne pas supprimer le dossier `patches/`**.
+
 > Après un changement de dépendances ou de plugin : recréer le projet natif puis
 > relancer le build.
 
 ```bash
 cd mobile
+npm install            # ré-applique le patch (patch-package)
 npx expo prebuild --clean
 npm run android        # development build (module natif requis)
 ```
