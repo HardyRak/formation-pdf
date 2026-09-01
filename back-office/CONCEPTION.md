@@ -208,7 +208,7 @@ accès document), extension backend, `active` soft-disable, palette mobile.
 | --- | --- | --- |
 | **1 — Backend `/v1/admin`** | ✅ Fait | `active` (soft-disable), `documentIds[]`, garde `ManagerGuard`, CRUD users/accès/formations/niveaux/documents, **upload PDF** (volume `UPLOAD_DIR` + comptage pages), `/stream` binaire, stats. Validé (typecheck + build + `npm run test:access`). |
 | **2 — Lecteur mobile vrais PDF** | ✅ Fait | `httpClient.getBinary` (jeton + rejeu 401), `documentApi.stream` → `{ kind: 'pdf' \| 'blocks' }`, `pdfReaderStore` gère les deux modes, `PdfViewer.native.tsx` (react-native-pdf, base64, `onPageChanged`) + `PdfViewer.web.tsx` (iframe/Blob) + fallback. Validé (typecheck + `expo export --platform web`). |
-| **3 — Back-office Vite + React** | ⬜ À faire | Auth MANAGER, layout, Dashboard, écrans Formation/Niveau/Documents/Accès branchés sur `/v1/admin`. |
+| **3 — Back-office Vite + React** | ✅ Fait | Vite 6 + React 18 + TS, React Router, TanStack Query, Zustand. Auth MANAGER (login + garde), layout sidebar, écrans Tableau de bord / Formations / Niveaux / Documents-PDF / Accès, branchés sur `/v1/admin/*`. Validé (typecheck + build + preview). |
 
 ### ⚠️ Notes Phase 2
 - **`react-native-pdf`** est un module natif : le rendu PDF natif nécessite un

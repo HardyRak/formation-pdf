@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Environnement (jamais commité)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.*
+
+# TS
+*.tsbuildinfo
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
