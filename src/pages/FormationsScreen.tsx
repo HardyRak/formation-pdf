@@ -40,6 +40,10 @@ export function FormationsScreen({ navigation }: Props) {
     [navigation],
   );
 
+  const goToProfile = useCallback(() => {
+    (navigation as any).navigate('Tabs', { screen: 'ProfileTab' });
+  }, [navigation]);
+
   const firstName = auth.user?.firstName ?? '';
 
   return (
@@ -70,7 +74,7 @@ export function FormationsScreen({ navigation }: Props) {
                 size={44}
                 borderRadius={16}
                 fontSize={15}
-                onPress={() => navigation.navigate('ProfileTab' as never)}
+                onPress={goToProfile}
               />
             </View>
 
