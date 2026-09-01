@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import { radius, spacing } from '../core/theme/theme';
 import { MessageState } from '../components/StateViews';
 import { PdfPageView } from '../components/PdfPageView';
@@ -37,6 +38,9 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const state = usePdfReaderStore();
   const listRef = useRef<FlatList>(null);
   const [resumeToast, setResumeToast] = useState<number | null>(null);
+
+  // Protection renforcée pour le lecteur PDF : bloque capture même si App.tsx est modifié
+  usePreventScreenCapture();
 
   const accent = useMemo(() => {
     const formationId = state.document?.formationId;
