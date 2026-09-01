@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { AccessModule } from './access/access.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { HealthModule } from './health/health.module';
+import { LogModule } from './logs/log.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { HealthModule } from './health/health.module';
     AccessModule,
     CatalogModule,
     HealthModule,
+    LogModule,
   ],
   providers: [
     // Rate-limiting global par défaut (affiné sur /auth/login).
