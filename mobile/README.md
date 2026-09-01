@@ -104,6 +104,27 @@ RelWithDebInfo/Release), en miroir du correctif upstream de reanimated.
 `npm install` applique automatiquement le patch grâce au script
 `postinstall: patch-package`. **Ne pas supprimer le dossier `patches/`**.
 
+> ⚠️ **Ne pas lancer `./gradlew clean` ni `cd android && gradlew clean`.**
+> Sur New Architecture (RN 0.86), la tâche `:app:externalNativeBuildCleanDebug`
+> échoue car CMake régénère `Android-autolinking.cmake` tandis que les dossiers
+> `.../android/build/generated/source/codegen/jni/` viennent d'être supprimés :
+>
+> ```
+> CMake Error ... add_subdirectory given source "...codegen/jni/" which is not an existing directory
+> ```
+>
+> C'est un bug connu en amont (facebook/react-native#49387), **indépendant de ce
+> projet** — il n'affecte que la tâche `clean` (un `assembleDebug` normal
+> régénère le codegen avant la config CMake et fonctionne). Pour nettoyer le
+> build, supprimer les dossiers générés manuellement puis reconstruire :
+>
+> ```bash
+> cd mobile
+> rm -rf android/app/build android/app/.cxx android/build android/.gradle
+> npm install              # ré-applique le patch (patch-package)
+> npm run android          # development build
+> ```
+
 > Après un changement de dépendances ou de plugin : recréer le projet natif puis
 > relancer le build.
 
