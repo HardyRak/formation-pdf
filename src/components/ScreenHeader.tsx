@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { styles } from './ScreenHeader.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../core/theme/theme';
 import { OPACITY } from '../core/theme/design-tokens';
@@ -43,9 +44,3 @@ export function ScreenHeader({ title, subtitle, onBack, right }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 4 },
-  back: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  subtitle: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
-  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-});

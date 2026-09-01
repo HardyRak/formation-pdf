@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ActivityIndicator, View, ViewStyle } from 'react-native';
+import { Pressable, Text, ActivityIndicator, View, ViewStyle } from 'react-native';
+import { styles } from './Button.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, radius, shadow } from '../core/theme/theme';
 import { OPACITY, SCALE } from '../core/theme/design-tokens';
@@ -51,15 +52,3 @@ export function Button({ label, onPress, loading, disabled, icon, variant = 'pri
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 52,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    paddingHorizontal: 18,
-  },
-  content: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  label: { fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-});

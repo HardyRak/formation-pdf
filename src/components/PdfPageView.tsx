@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
+import { styles } from './PdfPageView.styles';
 import type { PdfPage } from '../core/models';
 
 interface Props {
@@ -104,16 +105,5 @@ function PdfPageViewComponent({ page, width, height, accent, documentTitle, tota
   );
 }
 
-const styles = StyleSheet.create({
-  paper: {
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  h1: { fontWeight: '900', color: '#14172B', letterSpacing: -0.4 },
-  h2: { fontWeight: '800', letterSpacing: -0.2 },
-  p: { color: '#3A3F58' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', borderTopColor: '#EDEFF5', alignItems: 'center' },
-});
 
 export const PdfPageView = memo(PdfPageViewComponent);

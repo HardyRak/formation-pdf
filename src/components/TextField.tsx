@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, TextInputProps } from 'react-native';
+import { View, Text, TextInput, Pressable, TextInputProps } from 'react-native';
+import { styles } from './TextField.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, radius } from '../core/theme/theme';
 
@@ -61,18 +62,3 @@ export function TextField({ label, icon, error, secure, ...inputProps }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: { gap: 7 },
-  label: { fontSize: 12.5, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    height: 54,
-    borderRadius: radius.md,
-    paddingHorizontal: 15,
-  },
-  input: { flex: 1, fontSize: 15.5, paddingVertical: 0 },
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  errorText: { fontSize: 12.5, fontWeight: '600' },
-});

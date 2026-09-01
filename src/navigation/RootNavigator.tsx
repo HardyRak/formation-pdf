@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { styles } from './RootNavigator.styles';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -124,8 +125,3 @@ export function RootNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  splash: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  splashLogo: { width: 78, height: 78, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  splashTitle: { fontSize: 21, fontWeight: '900', letterSpacing: -0.4 },
-});

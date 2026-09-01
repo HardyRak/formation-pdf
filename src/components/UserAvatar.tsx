@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ViewStyle } from 'react-native';
+import { View, Text, Pressable, ViewStyle } from 'react-native';
+import { styles } from './UserAvatar.styles';
 import { useTheme } from '../core/theme/theme';
 
 interface Props {
@@ -49,7 +50,3 @@ export function UserAvatar({
   return content;
 }
 
-const styles = StyleSheet.create({
-  avatar: { alignItems: 'center', justifyContent: 'center' },
-  text: { color: '#fff', fontWeight: '900' },
-});

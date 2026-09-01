@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Pressable,
   useWindowDimensions,
 } from 'react-native';
+import { styles } from './LoginScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
@@ -175,49 +175,3 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg, flexGrow: 1, justifyContent: 'center' },
-  brand: { alignItems: 'center', gap: 10, marginBottom: 4 },
-  logo: { width: 82, height: 82, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  logoBadge: {
-    position: 'absolute',
-    right: -6,
-    bottom: -6,
-    width: 30,
-    height: 30,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-  },
-  appName: { fontWeight: '900', letterSpacing: -0.6, marginTop: 6 },
-  tagline: { fontSize: 14, textAlign: 'center', lineHeight: 20, maxWidth: 300 },
-  card: { borderRadius: radius.xl, borderWidth: 1, padding: spacing.lg },
-  cardTitle: { fontSize: 20, fontWeight: '800' },
-  cardSubtitle: { fontSize: 13.5, marginTop: 4 },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    padding: 12,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    marginTop: spacing.md,
-  },
-  errorText: { flex: 1, fontSize: 13.5, fontWeight: '600' },
-  notice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    padding: 13,
-    borderRadius: radius.md,
-    borderWidth: 1,
-  },
-  noticeText: { flex: 1, fontSize: 13.5, fontWeight: '700' },
-  demoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14 },
-  demoText: { fontSize: 13.5, fontWeight: '700' },
-  footer: { alignItems: 'center', gap: 6 },
-  footerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { fontSize: 11.5, textAlign: 'center' },
-});
