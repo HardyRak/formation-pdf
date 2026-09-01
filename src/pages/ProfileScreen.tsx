@@ -11,6 +11,8 @@ import { UserAvatar } from '../components/UserAvatar';
 import { authStore, useAuthStore } from '../core/state/auth.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { requestLogs } from '../core/api/http-client';
+import { getAccessibleFormations, FORMATION_LABELS } from '../core/security/access';
+import { formationStore, useFormationStore } from '../core/state/formation.store';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -19,17 +21,25 @@ export function ProfileScreen({ navigation }: Props) {
   const theme = useTheme();
   const auth = useAuthStore();
   const progression = useProgressionStore();
+  const formations = useFormationStore();
   const scheme = useColorScheme();
 
   const expiresIn = useMemo(() => {
     if (!auth.session) return '—';
     const remaining = auth.session.expiresAt - Date.now();
-    if (remaining <= 0) return 'expir\u00e9';
+    if (remaining <= 0) return 'expiré';
     return `${Math.max(1, Math.round(remaining / 60000))} min`;
   }, [auth.session]);
 
   const documentsTracked = Object.keys(progression.documents).length;
   const logs = requestLogs().slice(0, 5);
+
+  const accessibleFormations = useMemo(() => {
+    return getAccessibleFormations(auth.user?.id);
+  }, [auth.user?.id]);
+
+  const allFormations = formations.items.length > 0 ? formations.items : formationStore.state().items;
+  const lockedFormations = allFormations.filter((f) => !accessibleFormations.includes(f.id));
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
@@ -64,13 +74,90 @@ export function ProfileScreen({ navigation }: Props) {
           </View>
         </Animated.View>
 
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Sécurité des informations 🔒</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, gap: 12 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '18', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={'shield-checkmark'} size={20} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Accès aux formations</Text>
+              <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+                {accessibleFormations.length}/{allFormations.length || 4} formations accessibles
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            {allFormations.length > 0 ? (
+              allFormations.map((f) => {
+                const hasAccess = accessibleFormations.includes(f.id);
+                return (
+                  <View
+                    key={f.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: 10,
+                      borderRadius: radius.md,
+                      backgroundColor: hasAccess ? f.color + '12' : theme.surfaceAlt,
+                      borderWidth: 1,
+                      borderColor: hasAccess ? f.color + '33' : theme.border,
+                      opacity: hasAccess ? 1 : 0.6,
+                    }}
+                  >
+                    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: hasAccess ? f.color + '22' : theme.textFaint + '18', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name={hasAccess ? (f.icon as any) : 'lock-closed'} size={16} color={hasAccess ? f.color : theme.textFaint} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: hasAccess ? theme.text : theme.textFaint }} numberOfLines={1}>
+                        {f.name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: theme.textFaint }}>{f.category} • {hasAccess ? 'Accessible' : 'Verrouillé 🔒'}</Text>
+                    </View>
+                    <Ionicons name={hasAccess ? 'checkmark-circle' : 'lock-closed'} size={18} color={hasAccess ? theme.success : theme.textFaint} />
+                  </View>
+                );
+              })
+            ) : (
+              <>
+                {accessibleFormations.map((id) => (
+                  <View key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name={'checkmark-circle'} size={16} color={theme.success} />
+                    <Text style={{ fontSize: 13, color: theme.text }}>{FORMATION_LABELS[id] ?? id}</Text>
+                  </View>
+                ))}
+                {lockedFormations.length > 0 ? (
+                  <View style={{ marginTop: 4, gap: 6 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: theme.textFaint, marginTop: 4 }}>Verrouillées :</Text>
+                    {lockedFormations.map((f) => (
+                      <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, opacity: 0.6 }}>
+                        <Ionicons name={'lock-closed'} size={14} color={theme.textFaint} />
+                        <Text style={{ fontSize: 12, color: theme.textFaint }}>{f.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            )}
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8, padding: 10, backgroundColor: theme.warning + '12', borderRadius: radius.md, borderWidth: 1, borderColor: theme.warning + '22' }}>
+            <Ionicons name={'information-circle'} size={16} color={theme.warning} />
+            <Text style={{ flex: 1, fontSize: 11.5, lineHeight: 16, color: theme.textMuted }}>
+              Toutes les formations sont affichées mais grisées avec un cadenas 🔒 si vous n'avez pas l'accès. Même principe pour les niveaux à l'intérieur d'une formation.
+            </Text>
+          </View>
+        </View>
+
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Session</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <InfoRow icon={'key-outline'} label={'Jeton d\u2019acc\u00e8s'} value={`valide ${expiresIn}`} />
+          <InfoRow icon={'key-outline'} label={'Jeton d’accès'} value={`valide ${expiresIn}`} />
           <Divider />
-          <InfoRow icon={'shield-checkmark-outline'} label={'Stockage'} value={'Trousseau s\u00e9curis\u00e9'} />
+          <InfoRow icon={'shield-checkmark-outline'} label={'Stockage'} value={'Trousseau sécurisé'} />
           <Divider />
-          <InfoRow icon={'moon-outline'} label={'Th\u00e8me'} value={scheme === 'dark' ? 'Sombre (syst\u00e8me)' : 'Clair (syst\u00e8me)'} />
+          <InfoRow icon={'moon-outline'} label={'Thème'} value={scheme === 'dark' ? 'Sombre (système)' : 'Clair (système)'} />
           <Divider />
           <InfoRow icon={'bookmark-outline'} label={'Documents suivis'} value={`${documentsTracked}`} />
         </View>
@@ -111,8 +198,8 @@ export function ProfileScreen({ navigation }: Props) {
           />
           <ActionRow
             icon={'time-outline'}
-            label={'Simuler une session expir\u00e9e'}
-            hint={'V\u00e9rifie l\u2019intercepteur et la redirection'}
+            label={'Simuler une session expirée'}
+            hint={'Vérifie l’intercepteur et la redirection'}
             onPress={() => void authStore.simulateExpiredSession()}
           />
           <ActionRow
@@ -124,7 +211,7 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
 
         <Button
-          label={'Se d\u00e9connecter'}
+          label={'Se déconnecter'}
           icon={'log-out-outline'}
           variant={'danger'}
           onPress={() => void authStore.logout()}
@@ -186,4 +273,3 @@ function ActionRow({
     </Pressable>
   );
 }
-
