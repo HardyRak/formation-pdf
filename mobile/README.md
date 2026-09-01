@@ -97,9 +97,13 @@ needed by '.../libexpo-modules-core.so', missing and no known rule to make it
 
 C'est un bug connu (expo/expo#42893, software-mansion/react-native-reanimated#9151).
 Ce projet applique donc un **correctif local** à `expo-modules-core` via
-`patch-package` (`patches/expo-modules-core+57.0.11.patch`) : il ajoute
-`buildCMakeDebug` → `dependsOn(externalNativeBuildDebug)` (et l'équivalent
-RelWithDebInfo/Release), en miroir du correctif upstream de reanimated.
+`patch-package` (`patches/expo-modules-core+57.0.11.patch`) : via
+`tasks.configureEach` il ajoute `dependsOn(externalNativeBuildDebug)`/`Release`
+à **chaque** tâche CMake (`externalNativeBuild<Variant>` et les feuilles
+`buildCMake<Variant>[abi]`), de sorte que l'exécution de ninja attende toujours
+la compilation de `libworklets.so`. C'est le même mécanisme que le correctif
+upstream de reanimated, mais appliqué à toutes les variantes (Debug,
+RelWithDebInfo, Release) et à chaque ABI.
 
 `npm install` applique automatiquement le patch grâce au script
 `postinstall: patch-package`. **Ne pas supprimer le dossier `patches/`**.
