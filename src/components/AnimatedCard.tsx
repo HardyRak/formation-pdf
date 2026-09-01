@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Pressable, ViewStyle, PressableProps } from 'react-native';
+import { Pressable, ViewStyle, PressableProps } from 'react-native';
+import { styles } from './AnimatedCard.styles';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
 import { OPACITY, SCALE } from '../core/theme/design-tokens';
@@ -57,11 +58,3 @@ export function AnimatedCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    gap: 11,
-  },
-});

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
+import { styles } from './Chip.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, radius } from '../core/theme/theme';
 
@@ -29,15 +30,3 @@ export function Chip({ label, icon, color, solid = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-  },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
-});

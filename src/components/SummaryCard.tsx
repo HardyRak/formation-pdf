@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, ViewStyle } from 'react-native';
+import { styles } from './SummaryCard.styles';
 import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
 import { ProgressBar } from './ProgressBar';
 
@@ -44,13 +45,3 @@ export function SummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  summary: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    gap: 12,
-    marginBottom: spacing.md,
-  },
-  text: { fontSize: 13.5, lineHeight: 19 },
-});

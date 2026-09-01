@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, DimensionValue } from 'react-native';
+import { View, Text, DimensionValue } from 'react-native';
+import { styles } from './ProgressBar.styles';
 import { useTheme, radius } from '../core/theme/theme';
 
 interface Props {
@@ -37,10 +38,3 @@ export function ProgressBar({ percent, color, height = 8, showLabel = false, lab
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: { width: '100%' },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
-  value: { fontSize: 12, fontWeight: '800' },
-  track: { width: '100%', overflow: 'hidden' },
-});
