@@ -12,24 +12,46 @@ API backend de l'application **PDF Formation** (voir `../mobile`). Elle remplace
 
 ## Démarrage rapide
 
+### Option A — tout en conteneurs (recommandé)
+
 ```bash
-# 1. Dépendances
+cd back
+cp .env.example .env   # adapter si besoin
+docker compose up -d   # MongoDB + seed (une fois) + API
+```
+
+`docker compose` lit automatiquement le fichier `.env` (variables `MONGO_*`,
+`JWT_*`, `PORT`…). Au premier démarrage, le service `seed` réinitialise et
+peuple la base, puis l'API démarre sur `http://localhost:3000/v1`.
+
+- Re-seed : `docker compose up --force-recreate seed`
+- Voir les logs : `docker compose logs -f api`
+
+### Option B — développement local (backend sur la machine hôte)
+
+```bash
+cd back
 npm install
-
-# 2. Configuration
-cp .env.example .env   # puis adapter les valeurs
-
-# 3. Base de données (Docker) — ou utiliser un MongoDB existant
-docker compose up -d
-
-# 4. Peupler la base (formations, niveaux, documents, comptes de démo)
-npm run seed
-
-# 5. Lancer l'API (http://localhost:3000/v1)
-npm run start:dev
+cp .env.example .env
+docker compose up -d mongo   # MongoDB seul (accessible sur MONGO_PORT)
+npm run seed                 # peuple la base (via MONGO_HOST=localhost)
+npm run start:dev            # API sur http://localhost:3000/v1
 ```
 
 Vérification : `GET http://localhost:3000/v1/health` → `{ "status": "ok", … }`.
+
+## Docker Compose
+
+| Service | Rôle |
+| --- | --- |
+| `mongo` | Base MongoDB (volume `mongo-data`, healthcheck) |
+| `seed`  | One-shot : réinitialise et peuple la base, puis s'arrête |
+| `api`   | API NestJS (construite via `Dockerfile`), exposée sur `PORT` |
+
+Dans le réseau Compose, MongoDB est joignable par les services `seed`/`api` via
+le nom d'hôte `mongo` (la variable `MONGO_HOST` du `.env` est donc écrasée en
+interne). Si `MONGO_USER`/`MONGO_PASSWORD` sont renseignés, l'authentification
+Mongo est activée et le backend s'y connecte avec les mêmes identifiants.
 
 ## Variables d'environnement
 
