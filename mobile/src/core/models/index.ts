@@ -76,6 +76,15 @@ export interface PdfPage {
   blocks: PdfBlock[];
 }
 
+/**
+ * Résultat du chargement d'un document (`documentApi.stream`).
+ * - `pdf`    : vrai fichier PDF (octets) — nouvelle modalité « vrai PDF ».
+ * - `blocks` : contenu structuré en blocs (ancien modèle, seed / mock).
+ */
+export type PdfStreamResult =
+  | { kind: 'pdf'; bytes: Uint8Array; pageCount: number }
+  | { kind: 'blocks'; pages: PdfPage[] };
+
 export interface DocumentProgress {
   documentId: string;
   levelId: string;

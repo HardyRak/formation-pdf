@@ -22,6 +22,15 @@ export class AccessGrant {
 
   @Prop({ type: [String], default: [] })
   levelIds!: string[];
+
+  /**
+   * Droits fins au niveau du document. Vide = accès à tous les documents du
+   * ou des niveaux autorisés. Un document « octroyé » ouvre aussi son niveau
+   * et sa formation (cascade) : quand `documentIds` est renseigné, le/les
+   * niveaux correspondants sont ajoutés à `levelIds`.
+   */
+  @Prop({ type: [String], default: [] })
+  documentIds!: string[];
 }
 
 export const AccessGrantSchema = SchemaFactory.createForClass(AccessGrant);

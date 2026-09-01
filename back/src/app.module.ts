@@ -14,6 +14,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ProgressionModule } from './progression/progression.module';
 import { HealthModule } from './health/health.module';
 import { LogModule } from './logs/log.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { LogModule } from './logs/log.module';
     ProgressionModule,
     HealthModule,
     LogModule,
+    AdminModule,
   ],
   providers: [
     // Rate-limiting global par défaut (affiné sur /auth/login).

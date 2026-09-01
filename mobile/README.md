@@ -36,6 +36,27 @@ Le contrôle d'accès est chargé depuis `GET /auth/me/access` (voir
 `src/core/state/access.store.ts`), avec repli sur les règles statiques de
 `src/core/security/access.ts`.
 
+## Lecteur PDF : contenu en blocs **et** vrais fichiers PDF
+
+Le lecteur (`PdfReaderScreen`) gère **deux** types de contenu, selon ce que le
+backend renvoie sur `/documents/:id/stream` :
+
+- **Vrai fichier PDF** (nouveau) : le flux authentifié renvoie le **binaire**
+  (`Content-Type: application/pdf`). Le mobile le récupère via `httpClient.getBinary`
+  (avec jeton + rejeu 401), l'affiche par `PdfViewer` :
+  - **iOS / Android** : `src/components/PdfViewer.native.tsx` → `react-native-pdf`
+    (rendu natif, base64, `onPageChanged` pour le suivi de progression).
+    ⚠️ Nécessite un **development build** (module natif, pas Expo Go).
+  - **Web** : `src/components/PdfViewer.web.tsx` → `<iframe>` + Blob URL (lecteur
+    natif du navigateur). Le suivi de page repose sur les boutons préc./suiv.
+  - Le contenu ne passe **jamais** par une URL publique : les octets sont
+    récupérés avec le jeton puis rendus localement.
+- **Blocs** (ancien modèle, seed / mode mock) : rendu par `PdfPageView` comme
+  avant (pages structurées `h1/p/bullets/callout/…`).
+
+Dans les deux cas, la progression (position, % lu, pages vues) est suivie et
+synchronisée en base exactement de la même manière.
+
 ## Progression de lecture : sauvegarde en base
 
 La progression des utilisateurs **n'est plus seulement locale** : elle est

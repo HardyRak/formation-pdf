@@ -39,8 +39,32 @@ export class TrainingDocumentModel {
   @Prop({ required: true })
   updatedAt!: Date;
 
+  /**
+   * Contenu structuré (blocs) — utilisé par le seed et tant que le document
+   * n'a pas de fichier PDF. Conservé pour la compatibilité avec le mobile
+   * actuel (rendu par blocs).
+   */
   @Prop({ type: [MongooseSchema.Types.Mixed], default: [] })
   pages!: PdfPageDto[];
+
+  /**
+   * Fichier PDF réel (stockage volume). Nom de fichier relatif au dossier
+   * `UPLOAD_DIR` (ex. `<uuid>.pdf`). Présent dès qu'un .pdf a été importé.
+   */
+  @Prop({ type: String, default: '' })
+  filePath!: string;
+
+  /** Nom d'origine du fichier importé (ex. « guide-hse.pdf »). */
+  @Prop({ type: String, default: '' })
+  originalFilename!: string;
+
+  /** Type MIME du fichier (toujours `application/pdf` ici). */
+  @Prop({ type: String, default: 'application/pdf' })
+  mimeType!: string;
+
+  /** Empreinte SHA-256 du contenu (détection de collision / audit). */
+  @Prop({ type: String, default: '' })
+  sha256!: string;
 }
 
 export const TrainingDocumentSchema = SchemaFactory.createForClass(TrainingDocumentModel);

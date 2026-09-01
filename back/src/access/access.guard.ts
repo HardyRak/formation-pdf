@@ -46,7 +46,7 @@ export class DocumentAccessGuard implements CanActivate {
     const documentId: string = request.params?.id;
     const document = await this.catalog.findDocument(documentId);
     if (!document) throw new ApiException(404, 'NOT_FOUND', 'Document introuvable.');
-    const allowed = await this.access.canReadLevel(user, document.formationId, document.levelId);
+    const allowed = await this.access.canReadDocument(user, document);
     if (!allowed) {
       throw new ApiException(403, 'FORBIDDEN', "Vous n'avez pas accès à ce document.");
     }

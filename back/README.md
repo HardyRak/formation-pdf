@@ -73,6 +73,8 @@ en dur dans le code métier — les valeurs sont centralisées dans
 | `JWT_ACCESS_TTL` | Durée de vie access token (s) | `900` (15 min) |
 | `JWT_REFRESH_TTL` | Durée de vie refresh token (s) | `604800` (7 j) |
 | `CORS_ORIGINS` | Origines autorisées (virgules) | dev local |
+| `UPLOAD_DIR` | Dossier de stockage des PDF (volume) | `uploads` |
+| `MAX_UPLOAD_MB` | Taille max d'un upload PDF (Mo) | `50` |
 
 > L'URI MongoDB n'est **pas** définie directement : elle est construite à partir
 > des variables ci-dessus (`mongodb://[user:password@]host:port/db[?authSource=…]`)
@@ -94,12 +96,31 @@ Aligné sur le contrat déjà consommé par le mobile (`mobile/src/core/api/`).
 | `/formations/:id/levels` | GET | ✅ | Niveaux d'une formation (métadonnées) |
 | `/levels/:levelId/documents` | GET | ✅ + ACL | Documents d'un niveau (403 si verrouillé) |
 | `/documents/:id` | GET | ✅ + ACL | Métadonnées d'un document |
-| `/documents/:id/stream` | GET | ✅ + ACL | Contenu paginé (jamais d'URL publique) |
+| `/documents/:id/stream` | GET | ✅ + ACL | **Binaire PDF** (si fichier importé) sinon blocs — jamais d'URL publique |
 | `/progression` | GET | ✅ | Progression de lecture de l'utilisateur (tous documents) |
 | `/progression/documents/:id` | PUT | ✅ | Upsert fusionné d'une progression (idempotent) |
 | `/progression/documents/:id` | DELETE | ✅ | Efface la progression d'un document |
 | `/progression` | DELETE | ✅ | Efface toute la progression de l'utilisateur |
 | `/health` | GET | ❌ | Healthcheck |
+| `/admin/*` | variés | ✅ + **MANAGER** | Administration du back-office (voir §Admin) |
+
+### Routes admin (`/v1/admin/*`) — réservées au rôle `MANAGER`
+
+| Endpoint | Méthode | Description |
+| --- | --- | --- |
+| `/admin/users` | GET/POST | Liste / création de comptes (+ recherche, rôle) |
+| `/admin/users/:id` | GET/PATCH | Détail / édition + **soft-disable** |
+| `/admin/users/:id/active` | POST | Active / désactive un compte |
+| `/admin/access` | GET/POST | Liste des grants / **donner l'accès à un document** (cascade niveau + formation) |
+| `/admin/access/:userId/:formationId` | DELETE | Révoque l'accès à une formation |
+| `/admin/access/document/:userId/:documentId` | DELETE | Retire l'accès à un document précis |
+| `/admin/formations` | GET/POST/PATCH/DELETE | CRUD formations |
+| `/admin/formations/:id/levels` | GET/POST | Niveaux d'une formation |
+| `/admin/levels/:id` | PATCH/DELETE | Niveau |
+| `/admin/levels/:id/documents` | GET/POST | Documents + **upload PDF** (multipart `file`) |
+| `/admin/documents/:id` | GET/PATCH/DELETE | Document (+ purge du fichier) |
+| `/admin/documents/:id/content` | PUT | **Remplacer le PDF** d'un document |
+| `/admin/stats` | GET | Agrégations pour le tableau de bord |
 
 ### Format d'erreur
 
@@ -116,12 +137,12 @@ Codes métier : `INVALID_CREDENTIALS`, `TOKEN_EXPIRED`, `REFRESH_EXPIRED`,
 
 | Collection | Clé | Contenu |
 | --- | --- | --- |
-| `users` | `_id` = `usr-1` | Comptes + `passwordHash` |
+| `users` | `_id` = `usr-1` | Comptes + `passwordHash` + `active` (soft-disable) |
 | `refresh_tokens` | `_id` = sha256(jeton) | Jetons de rafraîchissement (rotation/révocation) |
 | `formations` | `_id` = `f-hse` | Métadonnées + compteurs pré-calculés |
 | `levels` | `_id` = `l-hse-1` | Niveaux |
-| `documents` | `_id` = `doc-hse-101` | Documents + pages embarquées |
-| `access_grants` | `_id` = `usr:f` | Droits d'accès (learners) |
+| `documents` | `_id` = `doc-hse-101` | Documents + pages embarquées (ou fichier PDF) |
+| `access_grants` | `_id` = `usr:f` | Droits d'accès (learners) + granularité par document |
 | `document_progress` | `_id` = `usr:doc` | Progression de lecture par utilisateur/document (synchronisée depuis le mobile) |
 
 Les identifiants métier (`f-hse`, `l-hse-1`, `doc-hse-101`) sont conservés pour
@@ -133,6 +154,9 @@ rester compatibles avec le client mobile.
 - **Access token** : JWT court (15 min), `typ: access`, signé HS256.
 - **Refresh token** : opaque (192 bits), stocké **haché** (sha256), **rotation** à chaque usage, révocation au logout.
 - **Contrôle d'accès serveur** : les métadonnées du catalogue sont visibles (affichage grisé côté client), mais le **contenu** (`/documents/*`, `/stream`) renvoie **403** sans droit. Les managers ont un accès total.
+- **Accès par document** : un `AccessGrant` peut porter `documentIds[]`. Accorder un document ouvre aussi son **niveau** et sa **formation** (cascade). `levelIds:[]` = tous les niveaux, `documentIds:[]` = tous les documents du niveau.
+- **Soft-disable** : un compte `active:false` ne peut plus se connecter ni rafraîchir sa session (403 `ACCOUNT_DISABLED`), ses données sont conservées.
+- **PDF sur volume** : les `.pdf` importés sont écrits dans `UPLOAD_DIR` et ne sont servis QUE par `/documents/:id/stream` (jamais d'URL publique).
 - **Anti-cache** sur `/stream` (`Cache-Control: no-store`).
 - **Rate-limiting** global + renforcé sur `/auth/login`.
 
@@ -152,6 +176,7 @@ rester compatibles avec le client mobile.
 | `npm run start:prod` | Lance le build compilé |
 | `npm run typecheck` | Vérification TypeScript seule |
 | `npm run seed` | Réinitialise et peuple MongoDB |
+| `npm run test:access` | Valide la logique d'accès (cascade document → niveau → formation) |
 
 ## ⚠️ Adaptation nécessaire côté mobile
 
@@ -169,10 +194,11 @@ src/
 ├── config/                 # configuration .env + validation Joi
 ├── common/                 # contrats DTO, ApiException, filtre d'erreurs, décorateurs
 ├── health/                 # healthcheck
-├── users/                  # schéma User
+├── users/                  # schéma User (+ `active` soft-disable)
 ├── auth/                   # login/refresh/me/logout, JWT, guard, hash mots de passe
 ├── access/                 # ACL serveur (service + schéma access_grants)
 ├── catalog/                # formations / niveaux / documents (+ guards d'accès)
 ├── progression/            # progression de lecture persistée en base (sync mobile)
+├── admin/                  # back-office : garde MANAGER, CRUD, upload PDF, stats
 └── seed/                   # seed depuis le catalogue mobile (script standalone)
 ```
