@@ -74,6 +74,27 @@ export interface StreamDto {
   pages: PdfPageDto[];
 }
 
+/** Progression de lecture d'un document (partagé mobile ⇄ backend). */
+export interface DocumentProgressDto {
+  documentId: string;
+  levelId: string;
+  formationId: string;
+  lastPage: number;
+  pageCount: number;
+  pagesRead: number[];
+  percent: number;
+  completed: boolean;
+  /** Horodatage (ms) de la dernière activité de lecture. */
+  updatedAt: number;
+}
+
+/** Réponse du reset de progression (DELETE). */
+export interface ProgressionResetResultDto {
+  success: boolean;
+  /** Nombre d'entrées supprimées (absent sur le reset d'un seul document). */
+  deletedCount?: number;
+}
+
 /** Résumé des droits de l'utilisateur (équivalent serveur de access.ts côté mobile). */
 export interface AccessSummaryDto {
   role: 'LEARNER' | 'MANAGER';

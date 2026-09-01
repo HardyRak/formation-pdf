@@ -212,8 +212,8 @@ export function ProfileScreen({ navigation }: Props) {
           />
           <ActionRow
             icon={'refresh-outline'}
-            label={'Vider la progression locale'}
-            hint={`${documentsTracked} document(s) suivis`}
+            label={'R\u00e9initialiser ma progression'}
+            hint={`${documentsTracked} document(s) suivis \u2022 local + serveur`}
             onPress={() => progressionStore.resetAll()}
           />
         </View>

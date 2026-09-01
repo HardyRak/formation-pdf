@@ -1,6 +1,7 @@
-import type { ApiError, AuthSession, User } from '../../models';
+import type { ApiError, AuthSession, DocumentProgress, User } from '../../models';
 import { catalogDb } from './catalog';
 import { FORMATION_ACCESS, LEVEL_ACCESS } from '../../security/access';
+import { mergeProgressEntries, percentOf } from '../../utils/progression-merge';
 
 /**
  * Simulation locale du backend NestJS (contrôleurs REST + JWT).
@@ -129,7 +130,7 @@ function buildSession(record: AccountRecord): AuthSession {
 }
 
 export interface BackendRequest {
-  method: 'GET' | 'POST' | 'PATCH';
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   path: string;
   body?: Record<string, unknown>;
   token?: string | null;
@@ -235,6 +236,33 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return { documentId: streamMatch[1], pages };
   }
 
+  // ---- Progression (équivalent de back/src/progression) -----------
+  const user = requireAuth(token);
+
+  if (method === 'GET' && path === '/progression') {
+    await latency(300);
+    return progressionDbFor(user.id).list();
+  }
+
+  const upsertMatch = path.match(/^\/progression\/documents\/([\w-]+)$/);
+  if (method === 'PUT' && upsertMatch) {
+    await latency(220);
+    const documentId = upsertMatch[1];
+    const incoming = progressionFromBody(documentId, body);
+    const saved = progressionDbFor(user.id).upsert(incoming);
+    return saved;
+  }
+
+  if (method === 'DELETE' && upsertMatch) {
+    await latency(180);
+    return { success: progressionDbFor(user.id).remove(upsertMatch[1]) };
+  }
+
+  if (method === 'DELETE' && path === '/progression') {
+    await latency(200);
+    return { success: true, deletedCount: progressionDbFor(user.id).clear() };
+  }
+
   throw apiError(404, 'NOT_FOUND', `Route inconnue : ${method} ${path}`);
 }
 
@@ -255,3 +283,70 @@ export const DEMO_CREDENTIALS = {
   email: ACCOUNTS[0].user.email,
   password: ACCOUNTS[0].password,
 };
+
+// ---- Progression simulée (équivalent de la collection document_progress) ----
+
+/**
+ * Base « document_progress » en mémoire : une map par utilisateur.
+ * Mêmes sémantiques de fusion que `back/src/progression/progression.service.ts`.
+ */
+class ProgressionMockDb {
+  private entries = new Map<string, DocumentProgress>();
+
+  list(): DocumentProgress[] {
+    return Array.from(this.entries.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  upsert(incoming: DocumentProgress): DocumentProgress {
+    const existing = this.entries.get(incoming.documentId);
+    const saved = existing ? mergeProgressEntries(existing, incoming) : incoming;
+    this.entries.set(saved.documentId, saved);
+    return saved;
+  }
+
+  remove(documentId: string): boolean {
+    return this.entries.delete(documentId);
+  }
+
+  clear(): number {
+    const count = this.entries.size;
+    this.entries.clear();
+    return count;
+  }
+}
+
+const progressionDatabases = new Map<string, ProgressionMockDb>();
+
+function progressionDbFor(userId: string): ProgressionMockDb {
+  let db = progressionDatabases.get(userId);
+  if (!db) {
+    db = new ProgressionMockDb();
+    progressionDatabases.set(userId, db);
+  }
+  return db;
+}
+
+const asInt = (value: unknown, fallback: number): number => {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? Math.floor(n) : fallback;
+};
+
+function progressionFromBody(documentId: string, body?: Record<string, unknown>): DocumentProgress {
+  const pageCount = Math.max(1, asInt(body?.pageCount, 1));
+  const pagesRead = Array.isArray(body?.pagesRead)
+    ? (body?.pagesRead as unknown[]).map((p) => asInt(p, 0)).filter((p) => p >= 1 && p <= pageCount)
+    : [];
+  const unique = Array.from(new Set(pagesRead)).sort((a, b) => a - b);
+  const lastPage = Math.min(Math.max(asInt(body?.lastPage, 1), 1), pageCount);
+  return {
+    documentId,
+    levelId: String(body?.levelId ?? ''),
+    formationId: String(body?.formationId ?? ''),
+    lastPage,
+    pageCount,
+    pagesRead: unique,
+    percent: percentOf(unique.length, pageCount),
+    completed: unique.length >= pageCount,
+    updatedAt: asInt(body?.updatedAt, Date.now()),
+  };
+}

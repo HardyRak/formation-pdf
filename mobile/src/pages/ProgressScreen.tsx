@@ -36,12 +36,12 @@ export function ProgressScreen({ navigation }: Props) {
 
   const confirmReset = () => {
     if (Platform.OS === 'web') {
-      progressionStore.resetAll();
+      void progressionStore.resetAll();
       return;
     }
     Alert.alert(
       'R\u00e9initialiser la progression',
-      'Toutes vos positions de lecture seront effac\u00e9es. Cette action est irr\u00e9versible.',
+      'Toutes vos positions de lecture seront effac\u00e9es de cet appareil et du serveur. Cette action est irr\u00e9versible.',
       [
         { text: 'Annuler', style: 'cancel' },
         { text: 'R\u00e9initialiser', style: 'destructive', onPress: () => progressionStore.resetAll() },
@@ -53,6 +53,8 @@ export function ProgressScreen({ navigation }: Props) {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: theme.text }]}>Ma progression</Text>
+
+        <SyncBadge />
 
         <Animated.View
           entering={FadeInDown.duration(340)}
@@ -152,6 +154,58 @@ export function ProgressScreen({ navigation }: Props) {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/**
+ * État de la sauvegarde en base (backend) : synchronisé, en cours,
+ * ou modifications en attente (hors ligne). La lecture reste toujours
+ * possible : seul l'envoi diffère.
+ */
+function SyncBadge() {
+  const theme = useTheme();
+  const progression = useProgressionStore();
+  const { syncStatus, pending, lastSyncAt, syncError } = progression;
+  const pendingCount = pending.length;
+
+  let icon: keyof typeof Ionicons.glyphMap = 'cloud-done-outline';
+  let color = theme.success;
+  let label = 'Progression sauvegard\u00e9e en base';
+
+  if (syncStatus === 'syncing') {
+    icon = 'cloud-upload-outline';
+    color = theme.primary;
+    label = 'Synchronisation en cours\u2026';
+  } else if (pendingCount > 0) {
+    icon = 'cloud-offline-outline';
+    color = theme.warning;
+    label = `Hors ligne \u2022 ${pendingCount} modification${pendingCount > 1 ? 's' : ''} en attente`;
+  } else if (syncStatus === 'error' || !lastSyncAt) {
+    icon = 'cloud-offline-outline';
+    color = theme.warning;
+    label = syncError ? `Sauvegarde locale \u2022 ${syncError}` : 'Sauvegarde locale';
+  }
+
+  return (
+    <View style={[styles.syncBadge, { borderColor: color + '55', backgroundColor: color + '14' }]}>
+      <Ionicons name={icon} size={14} color={color} />
+      <Text style={[styles.syncBadgeText, { color: theme.text }]} numberOfLines={1}>
+        {label}
+        {syncStatus === 'idle' && lastSyncAt && pendingCount === 0
+          ? ` \u2022 ${relativeTime(lastSyncAt)}`
+          : ''}
+      </Text>
+    </View>
+  );
+}
+
+function relativeTime(timestamp: number): string {
+  const elapsed = Date.now() - timestamp;
+  if (elapsed < 60_000) return 'il y a quelques secondes';
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  return `il y a ${Math.floor(hours / 24)} j`;
 }
 
 function HeroStat({ value, label }: { value: number; label: string }) {

@@ -36,6 +36,28 @@ Le contrôle d'accès est chargé depuis `GET /auth/me/access` (voir
 `src/core/state/access.store.ts`), avec repli sur les règles statiques de
 `src/core/security/access.ts`.
 
+## Progression de lecture : sauvegarde en base
+
+La progression des utilisateurs **n'est plus seulement locale** : elle est
+persistée dans MongoDB via le backend (`collection `document_progress``),
+tout en restant **offline-first**.
+
+1. Chaque page lue est écrite immédiatement en local (AsyncStorage) — la
+   lecture ne dépend jamais du réseau.
+2. Les modifications sont empilées dans une file d'attente conservée même
+   après redémarrage, puis poussées vers `PUT /progression/documents/:id`
+   (léger debounce pour regrouper les pages). En cas d'échec réseau, la
+   file est rejouée automatiquement (backoff 5 s → 60 s).
+3. À la connexion / au démarrage (`hydrate`), la progression distante est
+   fusionnée (`GET /progression`) : union des pages lues, position reprise
+   sur l'entrée la plus récente (« last write wins »). La progression suit
+   donc l'utilisateur sur **tous ses appareils**.
+
+L'état de synchronisation est visible sur l'écran « Ma progression »
+(badge cloud : synchronisé / en cours / en attente). Réinitialiser la
+progression (écran Progression ou Profil) efface les données **en local ET
+en base**, pour l'utilisateur connecté uniquement.
+
 ## Comptes de démonstration
 
 | Rôle | Email | Mot de passe |

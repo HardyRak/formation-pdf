@@ -95,6 +95,10 @@ Aligné sur le contrat déjà consommé par le mobile (`mobile/src/core/api/`).
 | `/levels/:levelId/documents` | GET | ✅ + ACL | Documents d'un niveau (403 si verrouillé) |
 | `/documents/:id` | GET | ✅ + ACL | Métadonnées d'un document |
 | `/documents/:id/stream` | GET | ✅ + ACL | Contenu paginé (jamais d'URL publique) |
+| `/progression` | GET | ✅ | Progression de lecture de l'utilisateur (tous documents) |
+| `/progression/documents/:id` | PUT | ✅ | Upsert fusionné d'une progression (idempotent) |
+| `/progression/documents/:id` | DELETE | ✅ | Efface la progression d'un document |
+| `/progression` | DELETE | ✅ | Efface toute la progression de l'utilisateur |
 | `/health` | GET | ❌ | Healthcheck |
 
 ### Format d'erreur
@@ -118,6 +122,7 @@ Codes métier : `INVALID_CREDENTIALS`, `TOKEN_EXPIRED`, `REFRESH_EXPIRED`,
 | `levels` | `_id` = `l-hse-1` | Niveaux |
 | `documents` | `_id` = `doc-hse-101` | Documents + pages embarquées |
 | `access_grants` | `_id` = `usr:f` | Droits d'accès (learners) |
+| `document_progress` | `_id` = `usr:doc` | Progression de lecture par utilisateur/document (synchronisée depuis le mobile) |
 
 Les identifiants métier (`f-hse`, `l-hse-1`, `doc-hse-101`) sont conservés pour
 rester compatibles avec le client mobile.
@@ -168,5 +173,6 @@ src/
 ├── auth/                   # login/refresh/me/logout, JWT, guard, hash mots de passe
 ├── access/                 # ACL serveur (service + schéma access_grants)
 ├── catalog/                # formations / niveaux / documents (+ guards d'accès)
+├── progression/            # progression de lecture persistée en base (sync mobile)
 └── seed/                   # seed depuis le catalogue mobile (script standalone)
 ```
