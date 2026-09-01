@@ -57,6 +57,43 @@ backend renvoie sur `/documents/:id/stream` :
 Dans les deux cas, la progression (position, % lu, pages vues) est suivie et
 synchronisée en base exactement de la même manière.
 
+## Compatibilité Android : pages 16 KB & permissions de stockage
+
+Le projet est configuré pour **Expo SDK 57 / React Native 0.86** (New Architecture),
+qui est **16 KB compatible par défaut**. Pour garantir le build :
+
+- `expo-build-properties` force `compileSdkVersion`/`targetSdkVersion` 36,
+  `buildToolsVersion` 36.0.0 et surtout `useLegacyPackaging: false`
+  (librairies natives non compressées et alignées 16 KB). Le NDK utilisé par
+  RN 0.86 est `27.1.12297006` (alignement 16 KB par défaut) et RN injecte
+  automatiquement `-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON`.
+- Les dépendances natives sont alignées sur les versions testées du SDK 57 :
+  `react-native-blob-util@0.24.10`, `react-native-worklets@0.10.1`,
+  `react-native-reanimated@4.5.1`. `react-native-blob-util` (dépendance
+  `peer`/runtime de `react-native-pdf`) et `react-native-worklets`
+  (dépendance de `react-native-reanimated`) **doivent** être installés
+  explicitement.
+- Le plugin local `plugins/withStoragePermissionsMaxSdk` retire
+  `android:maxSdkVersion` de `READ/WRITE_EXTERNAL_STORAGE` dans le manifest
+  applicatif, pour être cohérent avec les bibliothèques (surtout
+  `react-native-blob-util`) qui déclarent ces permissions **sans** attribut.
+  Cela supprime l'avertissement *« Expo Max Sdk Override Plugin »* du manifest
+  fusionné (qui retire de toute façon `maxSdkVersion`), tout en gardant le même
+  résultat.
+
+> Après un changement de dépendances ou de plugin : recréer le projet natif puis
+> relancer le build.
+
+```bash
+cd mobile
+npx expo prebuild --clean
+npm run android        # development build (module natif requis)
+```
+
+Pour vérifier la conformité 16 KB d'un APK produit, analyser le bundle dans
+Android Studio (`Build` → `Analyze APK`) ou installer sur un appareil / émulateur
+Android 15+ en mode 16 KB.
+
 ## Progression de lecture : sauvegarde en base
 
 La progression des utilisateurs **n'est plus seulement locale** : elle est
