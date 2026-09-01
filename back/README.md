@@ -41,11 +41,21 @@ en dur dans le code métier — les valeurs sont centralisées dans
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
 | `PORT` | Port HTTP | `3000` |
-| `MONGODB_URI` | URI MongoDB | — (requis) |
+| `MONGO_HOST` | Hôte MongoDB | `localhost` |
+| `MONGO_PORT` | Port MongoDB | `27017` |
+| `MONGO_DB` | Nom de la base | — (requis) |
+| `MONGO_USER` | Utilisateur (vide = sans auth) | — |
+| `MONGO_PASSWORD` | Mot de passe (vide = sans auth) | — |
+| `MONGO_AUTH_SOURCE` | Base d'authentification | `admin` |
 | `JWT_SECRET` | Secret de signature (≥ 16 car.) | — (requis) |
 | `JWT_ACCESS_TTL` | Durée de vie access token (s) | `900` (15 min) |
 | `JWT_REFRESH_TTL` | Durée de vie refresh token (s) | `604800` (7 j) |
 | `CORS_ORIGINS` | Origines autorisées (virgules) | dev local |
+
+> L'URI MongoDB n'est **pas** définie directement : elle est construite à partir
+> des variables ci-dessus (`mongodb://[user:password@]host:port/db[?authSource=…]`)
+> dans `src/config/configuration.ts`. C'est la seule façon acceptée de configurer
+> la connexion.
 
 ## Contrat d'API (préfixe global `/v1`)
 

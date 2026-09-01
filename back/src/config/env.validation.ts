@@ -8,7 +8,16 @@ import * as Joi from 'joi';
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().default(3000),
-  MONGODB_URI: Joi.string().required(),
+
+  // ---- MongoDB (variables séparées, assemblées en URI) ----------
+  MONGO_HOST: Joi.string().default('localhost'),
+  MONGO_PORT: Joi.number().default(27017),
+  MONGO_DB: Joi.string().required(),
+  MONGO_USER: Joi.string().allow('').default(''),
+  MONGO_PASSWORD: Joi.string().allow('').default(''),
+  MONGO_AUTH_SOURCE: Joi.string().default('admin'),
+
+  // ---- Authentification -----------------------------------------
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_ACCESS_TTL: Joi.number().min(60).default(900),
   JWT_REFRESH_TTL: Joi.number().min(3600).default(604800),
