@@ -15,7 +15,7 @@ export function DashboardPage() {
       onRetry={() => void stats.refetch()}
       loadingLabel="Chargement du tableau de bord…"
     >
-      {(() => {
+      {() => {
         const s = stats.data!;
         const totalDocs = s.perFormation.reduce((sum, f) => sum + f.documents, 0) || 1;
         const maxDocs = Math.max(...s.perFormation.map((f) => f.documents), 1);
@@ -64,7 +64,7 @@ export function DashboardPage() {
             </div>
           </div>
         );
-      })()}
+      }}
     </QueryGate>
   );
 }
