@@ -2,9 +2,9 @@
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DashboardPage } from '../src/pages/DashboardPage';
-import { AccessPage } from '../src/pages/AccessPage';
-import { FormationsPage } from '../src/pages/FormationsPage';
+import { DashboardPage } from '../src/features/dashboard/pages/DashboardPage';
+import { AccessPage } from '../src/features/access/pages/AccessPage';
+import { FormationsPage } from '../src/features/formations/pages/FormationsPage';
 
 const stats = {
   users: 3,
@@ -41,22 +41,25 @@ function makeClient(seed: 'none' | 'dashboard' | 'access' | 'formations') {
     qc.setQueryData(['formations'], formations);
   }
   if (seed === 'formations') {
-    qc.setQueryData(['formations'], [
-      {
-        _id: 'f-ang',
-        id: 'f-ang',
-        name: 'Angular & Ionic',
-        category: 'Développement',
-        description: 'Applications mobiles hybrides.',
-        icon: 'phone-portrait',
-        color: '#6366F1',
-        mandatory: false,
-        order: 1,
-        levelsCount: 3,
-        documentsCount: 6,
-        totalPages: 43,
-      },
-    ]);
+    qc.setQueryData(
+      ['formations'],
+      [
+        {
+          _id: 'f-ang',
+          id: 'f-ang',
+          name: 'Angular & Ionic',
+          category: 'Développement',
+          description: 'Applications mobiles hybrides.',
+          icon: 'phone-portrait',
+          color: '#6366F1',
+          mandatory: false,
+          order: 1,
+          levelsCount: 3,
+          documentsCount: 6,
+          totalPages: 43,
+        },
+      ],
+    );
   }
   return qc;
 }
@@ -83,7 +86,10 @@ const htmlPending = renderToString(
     <DashboardPage />
   </QueryClientProvider>,
 );
-check('dashboard pending → écran Chargement sans crash', htmlPending.includes('Chargement du tableau de bord'));
+check(
+  'dashboard pending → écran Chargement sans crash',
+  htmlPending.includes('Chargement du tableau de bord'),
+);
 check('dashboard pending → pas de contenu dashboard', !htmlPending.includes('Tableau de bord</h1>'));
 
 // 2) Dashboard, requête prête : la fonction children est appelée avec les données.
@@ -115,18 +121,23 @@ const htmlFormations = renderToString(
   </MemoryRouter>,
 );
 check('formations → carte rendue', norm(htmlFormations).includes('Angular &amp; Ionic'));
-check('formations → icône SVG en mask (data URL)', htmlFormations.includes('mask-image:url(data:image/svg+xml'));
-check('formations → actions en flex-wrap (boutons ne débordent pas)', htmlFormations.includes('flex-wrap:wrap'));
-check('formations → grille assez large pour une ligne de boutons (340px)', htmlFormations.includes('minmax(340px, 1fr)'));
+check(
+  'formations → icône SVG en mask (data URL)',
+  htmlFormations.includes('mask-image:url(data:image/svg+xml'),
+);
+check(
+  'formations → actions en flex-wrap (boutons ne débordent pas)',
+  htmlFormations.includes('flex-wrap:wrap'),
+);
+check(
+  'formations → grille assez large pour une ligne de boutons (340px)',
+  htmlFormations.includes('minmax(340px, 1fr)'),
+);
 
 // 5) Sanity : pendant la capture, une liste volontairement cassée DOIT produire
 // un warning — prouve que l'assertion suivante n'est pas vide.
 const warningsBefore = reactErrors.filter((e) => e.includes('unique "key"')).length;
-renderToString(
-  <div>
-    {[<span>a</span>, <span>b</span>]}
-  </div>,
-);
+renderToString(<div>{[<span>a</span>, <span>b</span>]}</div>);
 const warningsAfter = reactErrors.filter((e) => e.includes('unique "key"')).length;
 check('sanity → la capture détecte un warning key volontaire', warningsAfter > warningsBefore);
 
@@ -150,13 +161,15 @@ async function apiNormalization(): Promise<void> {
     );
   }) as typeof fetch;
 
-  const { listFormations, listLevels, listDocuments } = await import('../src/api/admin');
-  const f = await listFormations();
-  check('api → listFormations normalise _id en id (back ancien)', f[0]?.id === 'f-old');
-  const l = await listLevels('f-old');
-  check('api → listLevels normalise _id en id (back ancien)', l[0]?.id === 'l-old');
-  const d = await listDocuments('l-old');
-  check('api → listDocuments normalise _id en id (back ancien)', d[0]?.id === 'doc-old');
+  const { formationService } = await import('../src/features/formations/services/formationService');
+  const { levelService } = await import('../src/features/formations/services/levelService');
+  const { documentService } = await import('../src/features/formations/services/documentService');
+  const f = await formationService.list();
+  check('api → formationService.list normalise _id en id (back ancien)', f[0]?.id === 'f-old');
+  const l = await levelService.list('f-old');
+  check('api → levelService.list normalise _id en id (back ancien)', l[0]?.id === 'l-old');
+  const d = await documentService.list('l-old');
+  check('api → documentService.list normalise _id en id (back ancien)', d[0]?.id === 'doc-old');
 }
 
 void apiNormalization().then(() => process.exit(failed ? 1 : 0));

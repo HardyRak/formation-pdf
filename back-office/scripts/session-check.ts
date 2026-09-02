@@ -3,7 +3,7 @@
  * `npm run test:session`. Simule localStorage + fetch côté node et pilote le
  * VRAI store (src/auth/session.store.ts).
  */
-import { useSessionStore } from '../src/auth/session.store';
+import { useSessionStore } from '../src/features/auth/session.store';
 
 // --- Polyfills navigateur minimal (node) -------------------------------
 const store = new Map<string, string>();
@@ -67,7 +67,10 @@ async function main() {
   store.set('pdftrain.bo.session', storedSession);
   refreshStatus = 200;
   await useSessionStore.getState().bootstrap();
-  check('refresh OK → bootstrapping=false (bug « bloqué sur Chargement »)', useSessionStore.getState().bootstrapping === false);
+  check(
+    'refresh OK → bootstrapping=false (bug « bloqué sur Chargement »)',
+    useSessionStore.getState().bootstrapping === false,
+  );
   check('refresh OK → status authenticated', useSessionStore.getState().status === 'authenticated');
   check('refresh OK → jeton remplacé', useSessionStore.getState().session?.accessToken === 'new-access');
 

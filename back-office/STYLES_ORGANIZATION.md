@@ -14,26 +14,31 @@ React DOM (pas de `StyleSheet`, objets `CSSProperties`).
    opacité selon `disabled`, `isActive` d'un NavLink…) restent inline dans le
    `.tsx`.
 5. Une base partagée de contrôle de saisie vit dans
-   `components/inputControl.styles.ts` (importée par TextField / TextArea /
-   Select) — pas de duplication.
+   `shared/components/inputControl.styles.ts` (importée par TextField /
+   TextArea / Select) — pas de duplication.
 6. Un composant purement délégant (ex. `ConfirmButton`, `FilePickerButton`,
    `QueryGate`) n'a pas de fichier de styles tant qu'il n'en porte aucun.
 
 ## Structure
 
 ```
-src/components/
+src/shared/components/        (primitives génériques)
   Button.tsx            Button.styles.ts
   Card.tsx              Card.styles.ts
   …
-  index.ts              (barrel : import { Button, Card } from '../components')
+  index.ts              (barrel : import { Button, Card } from '@/shared/components')
 
-src/pages/
-  LoginPage.tsx         LoginPage.styles.ts
-  …
+src/features/<feature>/
+  components/                 (composants spécifiques : FormationCard…)
+  pages/
+    LoginPage.tsx       LoginPage.styles.ts
+    …
+  hooks/                      (useFormations, useDashboard…)
+  services/                   (formationService, dashboardService…)
 ```
 
 ## Vérifications
 
 - `npm run typecheck` et `npm run build` doivent passer.
-- Tout `.tsx` de `components/` et `pages/` exporte exactement un composant.
+- Tout `.tsx` de `shared/components/` et `features/*/components|pages/`
+  exporte exactement un composant.
