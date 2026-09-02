@@ -17,6 +17,7 @@ export function ComboBox({
   placeholder,
   allowCreate = true,
   onCreate,
+  onError,
   invalid,
 }: {
   value: string;
@@ -30,11 +31,14 @@ export function ComboBox({
    * cette valeur (normalisée par le serveur) qui est posée dans le champ.
    */
   onCreate?: (name: string) => Promise<string | void> | string | void;
+  /** Notifie un échec de création (ex. réseau / serveur) pour l'afficher. */
+  onError?: (message: string) => void;
   invalid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
@@ -63,6 +67,7 @@ export function ComboBox({
   }, [open]);
 
   const choose = async (label: string, isCreate = false) => {
+    setCreateError(null);
     // Création persistée : on appelle `onCreate` puis on pose la valeur
     // (normalisée par le serveur s'il en retourne une).
     if (isCreate && onCreate) {
@@ -70,9 +75,16 @@ export function ComboBox({
       try {
         const created = await onCreate(label);
         onChange(typeof created === 'string' && created ? created : label);
-      } finally {
+      } catch (err) {
+        // Échec réseau/serveur : on reste ouvert et on affiche l'erreur
+        // (sinon promesse non gérée + fermeture silencieuse).
+        const message = (err as { message?: string } | null)?.message ?? 'Échec de la création.';
+        setCreateError(message);
+        onError?.(message);
         setCreating(false);
+        return;
       }
+      setCreating(false);
     } else {
       onChange(label);
     }
@@ -119,6 +131,7 @@ export function ComboBox({
         placeholder={creating ? 'Création…' : placeholder}
         onChange={(e) => {
           onChange(e.target.value);
+          setCreateError(null);
           setOpen(true);
           setActiveIndex(-1);
         }}
@@ -169,6 +182,15 @@ export function ComboBox({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {createError ? (
+        <p
+          role="alert"
+          style={{ margin: '6px 0 0', fontSize: '12.5px', fontWeight: 600, color: 'var(--danger)' }}
+        >
+          {createError}
+        </p>
       ) : null}
     </div>
   );
