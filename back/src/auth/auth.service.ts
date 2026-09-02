@@ -27,6 +27,9 @@ export class AuthService {
     if (!user) {
       throw new ApiException(401, 'INVALID_CREDENTIALS', 'Email ou mot de passe incorrect.');
     }
+    if (user.active === false) {
+      throw new ApiException(403, 'ACCOUNT_DISABLED', 'Compte désactivé. Contactez votre responsable.');
+    }
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       throw new ApiException(401, 'INVALID_CREDENTIALS', 'Email ou mot de passe incorrect.');
@@ -47,6 +50,9 @@ export class AuthService {
     const user = await this.users.findById(stored.userId).lean();
     if (!user) {
       throw new ApiException(401, 'UNAUTHORIZED', 'Compte introuvable.');
+    }
+    if (user.active === false) {
+      throw new ApiException(403, 'ACCOUNT_DISABLED', 'Compte désactivé. Contactez votre responsable.');
     }
 
     // Rotation : on invalide l'ancien et on trace son remplaçant.

@@ -24,6 +24,10 @@ export default () => {
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),
+    /** Dossier de stockage des fichiers PDF (volume). */
+    uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
+    /** Taille maximale acceptée pour un upload de PDF (Mo). */
+    maxUploadMb: parseInt(process.env.MAX_UPLOAD_MB ?? '50', 10),
   };
 };
 

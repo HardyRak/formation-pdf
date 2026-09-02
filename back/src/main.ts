@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/api-exception.filter';
+import { ensureUploadDir } from './admin/uploads';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +28,9 @@ async function bootstrap(): Promise<void> {
     }),
   );
   app.useGlobalFilters(new ApiExceptionFilter());
+
+  // Dossier de stockage des PDF (volume) — créé au démarrage.
+  ensureUploadDir();
 
   const port = config.get<number>('port') ?? 3000;
   await app.listen(port, '0.0.0.0');

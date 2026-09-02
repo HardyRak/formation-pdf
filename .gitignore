@@ -13,6 +13,10 @@ dist/
 build/
 web-build/
 
+# Fichiers PDF importés via le back-office (jamais commités)
+back/uploads/
+uploads/
+
 # Logs
 *.log
 npm-debug.*

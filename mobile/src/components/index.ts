@@ -9,6 +9,7 @@ export { Button } from './Button';
 export { Chip } from './Chip';
 export { FormationCard } from './FormationCard';
 export { PdfPageView } from './PdfPageView';
+export { PdfViewer, type PdfViewerProps } from './PdfViewer';
 export { ProgressBar } from './ProgressBar';
 export { ScreenHeader } from './ScreenHeader';
 export { SearchBar } from './SearchBar';

@@ -1,6 +1,7 @@
 import type { ApiError } from '../models';
 import { API_BASE_URL, API_MODE } from '../config/env';
 import { decodeJwt } from './jwt';
+import { utf8ToBytes } from '../utils/binary';
 import { handleRequest } from './backend/server';
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -94,6 +95,61 @@ async function remoteRequest<T>(
   return data as T;
 }
 
+/** Transport réel pour un binaire (ex. PDF) : lit les octets + le type MIME. */
+async function remoteBinary(
+  path: string,
+  token: string | null,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const url = `${API_BASE_URL}${path}`;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(url, { method: 'GET', headers });
+  const contentType = response.headers.get('content-type') ?? '';
+
+  if (!response.ok) {
+    const data: unknown = await response.json().catch(() => null);
+    const apiErr = isApiError(data) ? data : {
+      status: response.status,
+      code: 'HTTP_ERROR',
+      message: `Erreur HTTP ${response.status}`,
+    } satisfies ApiError;
+    throw apiErr;
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  return { bytes, contentType };
+}
+
+/** Bonita le type MIME (nettoie un éventuel `; charset=…`). */
+function mimeBase(contentType: string): string {
+  return contentType.split(';')[0].trim().toLowerCase();
+}
+
+/** Route binaire : ajout du Bearer + rejeu après rafraîchissement (401). */
+async function requestBinary(
+  path: string,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const token = interceptors.getAccessToken();
+  if (API_MODE === 'mock') {
+    // Le backend simulé renvoie des blocs (JSON), pas un binaire.
+    const result = await handleRequest({ method: 'GET', path, body: undefined, token });
+    const bytes = utf8ToBytes(JSON.stringify(result));
+    return { bytes, contentType: 'application/json' };
+  }
+
+  try {
+    return await remoteBinary(path, token);
+  } catch (error) {
+    const apiErr = toApiError(error);
+    if (apiErr.status === 401) {
+      const refreshed = await interceptors.onUnauthorized(apiErr);
+      if (refreshed) return remoteBinary(path, refreshed);
+    }
+    throw apiErr;
+  }
+}
+
 async function execute<T>(
   method: Method,
   path: string,
@@ -148,4 +204,9 @@ export const httpClient = {
   put: <T>(path: string, body?: Record<string, unknown>, options?: RequestOptions) =>
     request<T>('PUT', path, { ...options, body }),
   delete: <T>(path: string, options?: RequestOptions) => request<T>('DELETE', path, options),
+  /** Récupère une ressource binaire (ex. PDF) avec authentification + rejeu 401. */
+  getBinary: (path: string) => requestBinary(path),
 };
+
+/** Type public du résultat binaire. */
+export type BinaryResult = { bytes: Uint8Array; contentType: string };

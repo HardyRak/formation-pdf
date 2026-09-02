@@ -21,6 +21,7 @@ import { usePreventScreenCapture } from 'expo-screen-capture';
 import { radius, spacing } from '../core/theme/theme';
 import { MessageState } from '../components/StateViews';
 import { PdfPageView } from '../components/PdfPageView';
+import { PdfViewer } from '../components/PdfViewer';
 import { pdfReaderStore, usePdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
 import { progressionStore } from '../core/state/progression.store';
 import { formationStore } from '../core/state/formation.store';
@@ -41,6 +42,9 @@ export function PdfReaderScreen({ route, navigation }: Props) {
 
   // Protection renforcée pour le lecteur PDF : bloque capture même si App.tsx est modifié
   usePreventScreenCapture();
+
+  const isPdf = pdfReaderStore.isPdf();
+  const totalCount = isPdf ? state.pageCount : state.pages.length;
 
   const accent = useMemo(() => {
     const formationId = state.document?.formationId;
@@ -72,6 +76,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
     return () => sub.remove();
   }, []);
 
+  // ---- Mode « blocs » : zoom + mise en page -----------------------------
   const zoom = ZOOM_STEPS[state.zoomIndex];
   const basePageWidth = Math.min(width - 24, 560);
   const pageWidth = Math.round(basePageWidth * zoom);
@@ -102,9 +107,21 @@ export function PdfReaderScreen({ route, navigation }: Props) {
     [state.pages.length],
   );
 
-  // Conserve la page courante lors d'un changement de zoom.
+  /** Navigation de page : bascule entre PDF (prop `page`) et blocs (FlatList). */
+  const goToPage = useCallback(
+    (page: number) => {
+      if (isPdf) {
+        pdfReaderStore.setPage(page);
+      } else {
+        scrollToPage(page);
+      }
+    },
+    [isPdf, scrollToPage],
+  );
+
+  // Conserve la page courante lors d'un changement de zoom (mode blocs).
   useEffect(() => {
-    if (state.status !== 'success') return;
+    if (isPdf || state.status !== 'success') return;
     const index = Math.max(0, state.currentPage - 1);
     const timer = setTimeout(() => listRef.current?.scrollToIndex({ index, animated: false }), 30);
     return () => clearTimeout(timer);
@@ -138,14 +155,16 @@ export function PdfReaderScreen({ route, navigation }: Props) {
                   Lecture sécurisée • {percent}% lu
                 </Text>
               </View>
-              <Pressable
-                onPress={() => pdfReaderStore.toggleOutline()}
-                hitSlop={10}
-                style={styles.iconBtn}
-                accessibilityLabel={'Sommaire'}
-              >
-                <Ionicons name={'list'} size={20} color={'#fff'} />
-              </Pressable>
+              {!isPdf ? (
+                <Pressable
+                  onPress={() => pdfReaderStore.toggleOutline()}
+                  hitSlop={10}
+                  style={styles.iconBtn}
+                  accessibilityLabel={'Sommaire'}
+                >
+                  <Ionicons name={'list'} size={20} color={'#fff'} />
+                </Pressable>
+              ) : null}
               <Pressable
                 onPress={() => pdfReaderStore.toggleFullscreen()}
                 hitSlop={10}
@@ -182,6 +201,14 @@ export function PdfReaderScreen({ route, navigation }: Props) {
             <Text style={{ color: '#9AA3C7', fontWeight: '700' }}>Retour aux documents</Text>
           </Pressable>
         </View>
+      ) : isPdf && state.pdfBytes ? (
+        <PdfViewer
+          bytes={state.pdfBytes}
+          pageCount={state.pageCount}
+          currentPage={state.currentPage}
+          accent={accent}
+          onPageChanged={(page) => pdfReaderStore.setPage(page)}
+        />
       ) : (
         <ScrollView
           horizontal
@@ -252,36 +279,40 @@ export function PdfReaderScreen({ route, navigation }: Props) {
               <ToolbarButton
                 icon={'chevron-back'}
                 disabled={state.currentPage <= 1}
-                onPress={() => scrollToPage(state.currentPage - 1)}
-                label={'Page pr\u00e9c\u00e9dente'}
+                onPress={() => goToPage(state.currentPage - 1)}
+                label={'Page \u200bpr\u00e9c\u00e9dente'}
               />
               <View style={styles.pageBadge}>
                 <Text style={styles.pageBadgeText}>
-                  {state.currentPage} / {state.pages.length}
+                  {state.currentPage} / {totalCount}
                 </Text>
               </View>
               <ToolbarButton
                 icon={'chevron-forward'}
-                disabled={state.currentPage >= state.pages.length}
-                onPress={() => scrollToPage(state.currentPage + 1)}
+                disabled={state.currentPage >= totalCount}
+                onPress={() => goToPage(state.currentPage + 1)}
                 label={'Page suivante'}
               />
-              <View style={styles.toolbarSep} />
-              <ToolbarButton
-                icon={'remove'}
-                disabled={state.zoomIndex === 0}
-                onPress={() => pdfReaderStore.zoomOut()}
-                label={'Zoom arri\u00e8re'}
-              />
-              <Pressable onPress={() => pdfReaderStore.resetZoom()} style={styles.zoomBadge}>
-                <Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text>
-              </Pressable>
-              <ToolbarButton
-                icon={'add'}
-                disabled={state.zoomIndex === ZOOM_STEPS.length - 1}
-                onPress={() => pdfReaderStore.zoomIn()}
-                label={'Zoom avant'}
-              />
+              {!isPdf ? (
+                <>
+                  <View style={styles.toolbarSep} />
+                  <ToolbarButton
+                    icon={'remove'}
+                    disabled={state.zoomIndex === 0}
+                    onPress={() => pdfReaderStore.zoomOut()}
+                    label={'Zoom arri\u00e8re'}
+                  />
+                  <Pressable onPress={() => pdfReaderStore.resetZoom()} style={styles.zoomBadge}>
+                    <Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text>
+                  </Pressable>
+                  <ToolbarButton
+                    icon={'add'}
+                    disabled={state.zoomIndex === ZOOM_STEPS.length - 1}
+                    onPress={() => pdfReaderStore.zoomIn()}
+                    label={'Zoom avant'}
+                  />
+                </>
+              ) : null}
             </View>
           </SafeAreaView>
         </Animated.View>
@@ -358,4 +389,3 @@ function ToolbarButton({
     </Pressable>
   );
 }
-

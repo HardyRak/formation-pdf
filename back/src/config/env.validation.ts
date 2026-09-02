@@ -22,4 +22,8 @@ export const envValidationSchema = Joi.object({
   JWT_ACCESS_TTL: Joi.number().min(60).default(900),
   JWT_REFRESH_TTL: Joi.number().min(3600).default(604800),
   CORS_ORIGINS: Joi.string().default('http://localhost:8081,http://localhost:19006'),
+
+  // ---- Stockage des fichiers PDF (volume) ---------------------------
+  UPLOAD_DIR: Joi.string().default('uploads'),
+  MAX_UPLOAD_MB: Joi.number().min(1).max(500).default(50),
 });

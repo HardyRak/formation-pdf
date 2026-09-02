@@ -1,0 +1,74 @@
+/* Thème du back-office — palette cohérente avec l'app mobile
+   (voir mobile/src/core/theme/theme.ts). */
+
+:root {
+  /* Palette (mobile) */
+  --primary: #4f46e5;
+  --primary-soft: #eae8ff;
+  --accent: #0ea5a4;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  /* Surfaces */
+  --bg: #f4f5fb;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-alt: #eef0fa;
+  --border: #e2e5f1;
+
+  /* Texte */
+  --text: #111634;
+  --text-muted: #5a6183;
+  --text-faint: #8d94b4;
+
+  /* Rayons */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  /* Espacements */
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 22px;
+  --space-xl: 30px;
+
+  /* Barre latérale */
+  --sidebar-width: 248px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}

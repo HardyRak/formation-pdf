@@ -33,6 +33,14 @@ export class User {
 
   @Prop({ default: '#4F46E5' })
   avatarColor!: string;
+
+  /**
+   * Compte actif ? `false` = soft-disable : connexion et refresh refusés,
+   * mais les données (grants, progression) sont conservées. Champ nullable
+   * pour rester compatible avec les comptes seed existants.
+   */
+  @Prop({ type: Boolean, default: true })
+  active!: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
