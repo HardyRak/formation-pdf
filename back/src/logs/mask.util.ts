@@ -15,19 +15,25 @@ const SENSITIVE_KEYS = [
   'pwd',
   'pass',
   'credential',
-  'refreshToken',
-  'accessToken',
+  'refreshtoken',
+  'accesstoken',
 ];
 
 const SENSITIVE_BODY_KEYS = [
   'password',
   'pwd',
-  'oldPassword',
-  'newPassword',
+  'oldpassword',
+  'newpassword',
   'token',
-  'refreshToken',
-  'accessToken',
+  'refreshtoken',
+  'accesstoken',
   'jwt',
+  'secret',
+  'credential',
+  'apikey',
+  'api-key',
+  'authorization',
+  'cookie',
 ];
 
 export function maskHeaders(headers: Record<string, unknown>): Record<string, unknown> {
