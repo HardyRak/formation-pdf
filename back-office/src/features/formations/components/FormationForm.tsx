@@ -129,7 +129,7 @@ export function FormationForm({
                   value={field.value}
                   onChange={field.onChange}
                   options={categories}
-                  placeholder="Rechercher ou créer une catégorie…"
+                  placeholder="Rechercher / créer…"
                   invalid={!!errors.category}
                 />
               )}
@@ -182,9 +182,19 @@ export function FormationForm({
 }
 
 function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
   return (
-    <div style={{ marginTop: '6px' }}>
-      <Alert message={message} tone="error" />
-    </div>
+    <p
+      role="alert"
+      style={{
+        margin: '6px 0 0',
+        fontSize: '12.5px',
+        fontWeight: 600,
+        color: 'var(--danger)',
+        lineHeight: 1.3,
+      }}
+    >
+      {message}
+    </p>
   );
 }

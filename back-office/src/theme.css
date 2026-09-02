@@ -15,6 +15,7 @@
   --bg-elevated: #ffffff;
   --surface: #ffffff;
   --surface-alt: #eef0fa;
+  --surface-elevated: #ffffff; /* surfaces superposées (modales, menus) */
   --border: #e2e5f1;
 
   /* Texte */
