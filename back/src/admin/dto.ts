@@ -252,3 +252,34 @@ export class UpdateDocumentDto {
   @Min(0)
   order?: number;
 }
+
+/** Lot d'identifiants de documents (résolution de titres en 1 requête). */
+export class DocumentTitlesDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(500)
+  @IsString({ each: true })
+  ids?: string[];
+}
+
+/** Création d'une catégorie de formation (admin). */
+export class CreateCategoryDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name!: string;
+}
+
+/** Mise à jour / renommage d'une catégorie (admin). */
+export class UpdateCategoryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  order?: number;
+}

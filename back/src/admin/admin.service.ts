@@ -12,6 +12,7 @@ import { toUserDto } from '../auth/auth.service';
 import { AccessService } from '../access/access.service';
 import { Formation, FormationDocument } from '../catalog/formation.schema';
 import { Level, LevelDocument } from '../catalog/level.schema';
+import { Category, CategoryDocument } from '../catalog/category.schema';
 import {
   TrainingDocumentModel,
   TrainingDocumentDocument,
@@ -51,6 +52,7 @@ export class AdminService {
     @InjectModel(Level.name) private readonly levels: Model<LevelDocument>,
     @InjectModel(TrainingDocumentModel.name)
     private readonly documents: Model<TrainingDocumentDocument>,
+    @InjectModel(Category.name) private readonly categories: Model<CategoryDocument>,
     private readonly access: AccessService,
   ) {}
 
@@ -192,6 +194,97 @@ export class AdminService {
     return { success: true };
   }
 
+  // ---- Documents (titres en lot) --------------------------------------------
+
+  /**
+   * Résout les titres d'un lot de documents en une seule requête (évite le
+   * N+1 côté back-office lors de l'affichage des attributions d'accès).
+   */
+  async documentTitles(ids: string[]): Promise<Record<string, string>> {
+    const unique = Array.from(new Set(ids.filter(Boolean)));
+    if (unique.length === 0) return {};
+    const docs = (await this.documents
+      .find({ _id: { $in: unique } }, { title: 1 })
+      .lean()) as Array<{ _id: string; title?: string }>;
+    const map: Record<string, string> = {};
+    for (const d of docs) map[d._id] = d.title ?? d._id;
+    return map;
+  }
+
+  // ---- Catégories ----------------------------------------------------------
+
+  async listCategories(): Promise<AdminDoc[]> {
+    const rows = (await this.categories.find().sort({ order: 1, name: 1 }).lean()) as AnyDoc[];
+    return rows.map(withId);
+  }
+
+  /**
+   * Trouve la catégorie par son nom (insensible à la casse) ou la crée.
+   * Utilisé à la création/édition d'une formation pour que la « nouvelle
+   * catégorie » saisie dans la ComboBox devienne une entité en base.
+   * Retourne le nom canonique (celui réellement enregistré).
+   */
+  private async ensureCategory(rawName: string): Promise<string> {
+    const name = rawName.trim();
+    if (!name) return name;
+    const existing = await this.categories
+      .findOne({ name: { $regex: `^${escapeRegex(name)}$`, $options: 'i' } })
+      .lean();
+    if (existing) return (existing.name as string) ?? name;
+    const count = await this.categories.countDocuments();
+    const _id = `cat-${slug(name)}-${shortId()}`;
+    await this.categories.create({ _id, name, order: count + 1 });
+    return name;
+  }
+
+  async createCategory(input: { name: string }): Promise<AnyDoc> {
+    const name = input.name.trim();
+    if (!name) throw new ApiException(400, 'INVALID', 'Le nom de catégorie est requis.');
+    const dup = await this.categories
+      .findOne({ name: { $regex: `^${escapeRegex(name)}$`, $options: 'i' } })
+      .lean();
+    if (dup) throw new ApiException(409, 'CONFLICT', 'Cette catégorie existe déjà.');
+    const count = await this.categories.countDocuments();
+    const _id = `cat-${slug(name)}-${shortId()}`;
+    await this.categories.create({ _id, name, order: count + 1 });
+    return (await this.categories.findById(_id).lean()) as AnyDoc;
+  }
+
+  /** Renommage : met aussi à jour le champ `category` de toutes les formations. */
+  async renameCategory(id: string, input: { name?: string }): Promise<AnyDoc> {
+    const category = await this.categories.findById(id).lean();
+    if (!category) throw new ApiException(404, 'NOT_FOUND', 'Catégorie introuvable.');
+    const oldName = category.name as string;
+    const name = (input.name ?? '').trim();
+    if (!name) throw new ApiException(400, 'INVALID', 'Le nom de catégorie est requis.');
+    const dup = await this.categories
+      .findOne({ _id: { $ne: id }, name: { $regex: `^${escapeRegex(name)}$`, $options: 'i' } })
+      .lean();
+    if (dup) throw new ApiException(409, 'CONFLICT', 'Une catégorie porte déjà ce nom.');
+
+    await this.categories.updateOne({ _id: id }, { $set: { name } });
+    if (name !== oldName) {
+      await this.formations.updateMany({ category: oldName }, { $set: { category: name } });
+    }
+    return (await this.categories.findById(id).lean()) as AnyDoc;
+  }
+
+  /** Suppression refusée si des formations utilisent encore la catégorie. */
+  async deleteCategory(id: string): Promise<{ success: boolean }> {
+    const category = await this.categories.findById(id).lean();
+    if (!category) throw new ApiException(404, 'NOT_FOUND', 'Catégorie introuvable.');
+    const inUse = await this.formations.countDocuments({ category: category.name as string });
+    if (inUse > 0) {
+      throw new ApiException(
+        409,
+        'CONFLICT',
+        `Catégorie utilisée par ${inUse} formation(s) ; renommez-les d'abord.`,
+      );
+    }
+    await this.categories.deleteOne({ _id: id });
+    return { success: true };
+  }
+
   // ---- Formations ---------------------------------------------------------
 
   async listFormations(): Promise<AdminDoc[]> {
@@ -210,11 +303,13 @@ export class AdminService {
   }): Promise<AnyDoc> {
     const count = await this.formations.countDocuments();
     const _id = `f-${slug(input.name)}-${count + 1}`;
+    // La catégorie saisie (nouvelle ou existante) devient une entité en base.
+    const category = await this.ensureCategory(input.category);
     await this.formations.create({
       _id,
       name: input.name,
       description: input.description,
-      category: input.category,
+      category,
       icon: input.icon,
       color: input.color,
       mandatory: input.mandatory ?? false,
@@ -233,7 +328,12 @@ export class AdminService {
   ): Promise<AnyDoc> {
     const formation = await this.formations.findById(id).lean();
     if (!formation) throw new ApiException(404, 'NOT_FOUND', 'Formation introuvable.');
-    await this.formations.updateOne({ _id: id }, { $set: input });
+    const patch: Record<string, unknown> = { ...input };
+    // Si la catégorie change, on s'assure qu'elle existe (création à la volée).
+    if (typeof patch.category === 'string' && patch.category.trim()) {
+      patch.category = await this.ensureCategory(patch.category as string);
+    }
+    await this.formations.updateOne({ _id: id }, { $set: patch });
     return (await this.formations.findById(id).lean()) as AnyDoc;
   }
 
@@ -539,4 +639,17 @@ function slug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
+}
+
+/** Échappe les caractères spéciaux d'une expression régulière. */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Identifiant court et unique (suffixe aléatoire) pour éviter toute collision
+ * de clé lors de créations parallèles (le `count+1` ne le garantit pas).
+ */
+function shortId(): string {
+  return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 }

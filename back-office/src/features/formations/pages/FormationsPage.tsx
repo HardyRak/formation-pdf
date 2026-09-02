@@ -1,71 +1,58 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  CheckboxField,
-  Empty,
-  Field,
-  FormCard,
-  FormGrid,
-  PageHeader,
-  QueryGate,
-  TextArea,
-  TextField,
-} from '@/shared/components';
+import { Button, Empty, PageHeader, QueryGate } from '@/shared/components';
 import type { FormationDto } from '@/shared/types/api';
-import { FORMATION_ICONS } from '@/assets/icons';
 import { useFormations } from '../hooks/useFormations';
+import { useCategories } from '../hooks/useCategories';
 import { FormationCard } from '../components/FormationCard';
+import { FormationForm, type FormationFormValues } from '../components/FormationForm';
 import { styles } from './FormationsPage.styles';
-
-type FormState = Partial<FormationDto> & { name: string; description: string; category: string };
-
-const emptyForm: FormState = {
-  name: '',
-  description: '',
-  category: '',
-  icon: 'library',
-  color: '#4F46E5',
-  mandatory: false,
-};
 
 export function FormationsPage() {
   const navigate = useNavigate();
   const { formations, isLoading, isError, error, refetch, createMutation, updateMutation, deleteMutation } =
     useFormations();
+  // Catégories depuis le référentiel backend ; création persistée immédiate.
+  const { categoryNames, createCategory } = useCategories();
 
-  const [editing, setEditing] = useState<FormState | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  // null = fermé ; 'new' = création ; { …formation } = édition.
+  const [editing, setEditing] = useState<FormationDto | 'new' | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
-  const handleStartNew = () => {
-    setEditing(emptyForm);
-    setIsNew(true);
+  const openNew = () => {
+    setEditing('new');
     setFormError(null);
   };
-
-  const handleStartEdit = (formation: FormationDto) => {
-    setEditing({ ...formation });
-    setIsNew(false);
+  const openEdit = (formation: FormationDto) => {
+    setEditing(formation);
     setFormError(null);
   };
-
-  const handleCancel = () => {
+  const close = () => {
     setEditing(null);
     setFormError(null);
   };
 
-  const handleSubmit = () => {
-    if (!editing) return;
+  const handleSubmit = (values: FormationFormValues) => {
+    const body: Partial<FormationDto> = {
+      name: values.name,
+      description: values.description,
+      category: values.category,
+      icon: values.icon,
+      color: values.color,
+      mandatory: values.mandatory,
+    };
     const options = {
-      onSuccess: () => handleCancel(),
+      onSuccess: () => close(),
       onError: (e: unknown) =>
         setFormError((e as { message?: string }).message ?? "Erreur lors de l'enregistrement."),
     };
-    if (isNew) createMutation.mutate(editing, options);
-    else if (editing.id) updateMutation.mutate({ id: editing.id, body: editing }, options);
+    if (editing === 'new') {
+      createMutation.mutate(body, options);
+    } else if (editing) {
+      updateMutation.mutate({ id: editing.id, body }, options);
+    }
   };
 
   const handleDelete = (id: string) => deleteMutation.mutate(id);
@@ -80,70 +67,25 @@ export function FormationsPage() {
       loadingLabel="Chargement des formations…"
     >
       <div>
-        <PageHeader
-          title="Formations"
-          action={<Button onClick={handleStartNew}>+ Nouvelle formation</Button>}
-        />
+        <PageHeader title="Formations" action={<Button onClick={openNew}>+ Nouvelle formation</Button>} />
 
         {editing ? (
-          <FormCard
-            title={isNew ? 'Nouvelle formation' : `Éditer — ${editing.name}`}
-            error={formError}
+          <FormationForm
+            key={editing === 'new' ? 'new' : editing.id}
+            initial={editing === 'new' ? undefined : editing}
+            categories={categoryNames}
+            onCreateCategory={createCategory}
             submitting={isSaving}
-            submitLabel={isNew ? 'Créer' : 'Enregistrer'}
+            error={formError}
             onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          >
-            <FormGrid>
-              <Field label="Nom">
-                <TextField
-                  value={editing.name}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Catégorie">
-                <TextField
-                  value={editing.category ?? ''}
-                  onChange={(e) => setEditing({ ...editing, category: e.target.value })}
-                />
-              </Field>
-              <Field label={`Icône (${Object.keys(FORMATION_ICONS).join(' · ')})`}>
-                <TextField
-                  value={editing.icon ?? 'library'}
-                  onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
-                />
-              </Field>
-              <Field label="Couleur">
-                <TextField
-                  type="color"
-                  value={editing.color ?? '#4F46E5'}
-                  onChange={(e) => setEditing({ ...editing, color: e.target.value })}
-                />
-              </Field>
-              <Field label="Obligatoire">
-                <CheckboxField
-                  label="Formation obligatoire"
-                  checked={editing.mandatory ?? false}
-                  onChange={(mandatory) => setEditing({ ...editing, mandatory })}
-                />
-              </Field>
-            </FormGrid>
-            <div style={styles.descField}>
-              <Field label="Description">
-                <TextArea
-                  rows={3}
-                  value={editing.description ?? ''}
-                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                />
-              </Field>
-            </div>
-          </FormCard>
+            onClose={close}
+          />
         ) : null}
 
         {formations.length === 0 ? (
           <Empty
             label="Aucune formation. Créez-en une pour commencer."
-            action={<Button onClick={handleStartNew}>+ Nouvelle formation</Button>}
+            action={<Button onClick={openNew}>+ Nouvelle formation</Button>}
           />
         ) : (
           <div style={styles.grid}>
@@ -152,7 +94,7 @@ export function FormationsPage() {
                 key={formation.id}
                 formation={formation}
                 onOpenLevels={() => handleOpenLevels(formation.id)}
-                onEdit={() => handleStartEdit(formation)}
+                onEdit={() => openEdit(formation)}
                 onDelete={() => handleDelete(formation.id)}
               />
             ))}

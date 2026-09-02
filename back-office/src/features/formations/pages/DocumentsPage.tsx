@@ -5,19 +5,14 @@ import {
   Button,
   ConfirmButton,
   Empty,
-  Field,
-  FileField,
   FilePickerButton,
-  FormCard,
-  FormGrid,
   ListRow,
   PageHeader,
   QueryGate,
-  TextArea,
-  TextField,
 } from '@/shared/components';
 import { useDocuments } from '../hooks/useDocuments';
 import { documentService } from '../services/documentService';
+import { DocumentForm } from '../components/DocumentForm';
 import { styles } from './DocumentsPage.styles';
 
 export function DocumentsPage() {
@@ -26,34 +21,20 @@ export function DocumentsPage() {
   const { documents, isLoading, isError, error, refetch, uploadMutation, deleteMutation, replaceMutation } =
     useDocuments(levelId);
 
-  const [uploadTitle, setUploadTitle] = useState('');
-  const [uploadDesc, setUploadDesc] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<{ id: string; message: string } | null>(null);
 
-  const handleFileChange = (file: File | null) => {
-    setSelectedFile(file);
+  const close = () => {
+    setAdding(false);
     setFormError(null);
   };
 
-  const handleSubmitUpload = () => {
-    if (!selectedFile) {
-      setFormError('Sélectionnez un fichier PDF.');
-      return;
-    }
-    uploadMutation.mutate(
-      { title: uploadTitle, description: uploadDesc, file: selectedFile },
-      {
-        onSuccess: () => {
-          setUploadTitle('');
-          setUploadDesc('');
-          setSelectedFile(null);
-          setFormError(null);
-        },
-        onError: (e) => setFormError((e as { message?: string }).message ?? "Erreur lors de l'upload."),
-      },
-    );
+  const handleUpload = (values: { title: string; description: string; file: File }) => {
+    uploadMutation.mutate(values, {
+      onSuccess: close,
+      onError: (e) => setFormError((e as { message?: string }).message ?? "Erreur lors de l'upload."),
+    });
   };
 
   const handleDownload = (id: string, title: string) => void documentService.download(id, title);
@@ -76,34 +57,20 @@ export function DocumentsPage() {
       loadingLabel="Chargement des documents…"
     >
       <div>
-        <PageHeader title="Documents du niveau" onBack={() => navigate(-1)} />
+        <PageHeader
+          title="Documents du niveau"
+          onBack={() => navigate(-1)}
+          action={<Button onClick={() => setAdding(true)}>+ Ajouter un document</Button>}
+        />
 
-        <FormCard
-          title="# Ajouter un document (PDF)"
-          error={formError}
-          submitting={uploadMutation.isPending}
-          submitLabel="Importer le document"
-          submitDisabled={!uploadTitle || !selectedFile}
-          onSubmit={handleSubmitUpload}
-        >
-          <FormGrid>
-            <Field label="Titre">
-              <TextField
-                value={uploadTitle}
-                onChange={(e) => setUploadTitle(e.target.value)}
-                placeholder="Guide de…"
-              />
-            </Field>
-            <Field label="Fichier PDF">
-              <FileField accept="application/pdf,.pdf" file={selectedFile} onFile={handleFileChange} />
-            </Field>
-          </FormGrid>
-          <div style={styles.descField}>
-            <Field label="Description (optionnel)">
-              <TextArea rows={2} value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)} />
-            </Field>
-          </div>
-        </FormCard>
+        {adding ? (
+          <DocumentForm
+            submitting={uploadMutation.isPending}
+            error={formError}
+            onSubmit={handleUpload}
+            onClose={close}
+          />
+        ) : null}
 
         {documents.length === 0 ? (
           <Empty label="Aucun document dans ce niveau." />

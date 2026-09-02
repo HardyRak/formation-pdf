@@ -21,12 +21,15 @@ import { AdminService } from './admin.service';
 import { pdfMulterStorage } from './uploads';
 import { ApiException } from '../common/api-exception';
 import {
+  CreateCategoryDto,
+  DocumentTitlesDto,
   CreateDocumentDto,
   CreateFormationDto,
   CreateLevelDto,
   CreateUserDto,
   GrantAccessDto,
   SetActiveDto,
+  UpdateCategoryDto,
   UpdateDocumentDto,
   UpdateFormationDto,
   UpdateLevelDto,
@@ -103,6 +106,28 @@ export class AdminController {
     return this.admin.revokeDocument(userId, documentId);
   }
 
+  // ---- Catégories ----------------------------------------------------------------
+
+  @Get('categories')
+  listCategories() {
+    return this.admin.listCategories();
+  }
+
+  @Post('categories')
+  createCategory(@Body() dto: CreateCategoryDto) {
+    return this.admin.createCategory(dto);
+  }
+
+  @Patch('categories/:id')
+  renameCategory(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    return this.admin.renameCategory(id, dto);
+  }
+
+  @Delete('categories/:id')
+  deleteCategory(@Param('id') id: string) {
+    return this.admin.deleteCategory(id);
+  }
+
   // ---- Formations --------------------------------------------------------------
 
   @Get('formations')
@@ -152,6 +177,11 @@ export class AdminController {
   @Get('levels/:id/documents')
   listDocuments(@Param('id') id: string) {
     return this.admin.listDocuments(id);
+  }
+
+  @Post('documents/titles')
+  documentTitles(@Body() dto: DocumentTitlesDto) {
+    return this.admin.documentTitles(dto.ids ?? []);
   }
 
   @Get('documents/:id')

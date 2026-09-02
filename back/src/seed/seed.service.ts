@@ -4,6 +4,7 @@ import type { Connection } from 'mongoose';
 import { hashPassword } from '../auth/password.util';
 import { UserSchema } from '../users/user.schema';
 import { FormationSchema } from '../catalog/formation.schema';
+import { CategorySchema } from '../catalog/category.schema';
 import { LevelSchema } from '../catalog/level.schema';
 import { TrainingDocumentSchema } from '../catalog/document.schema';
 import { AccessGrantSchema } from '../access/access-grant.schema';
@@ -50,12 +51,25 @@ export class SeedService {
     await this.connection.dropDatabase();
 
     const FormationModel = this.connection.model('Formation', FormationSchema);
+    const CategoryModel = this.connection.model('Category', CategorySchema);
     const LevelModel = this.connection.model('Level', LevelSchema);
     const DocumentModel = this.connection.model('TrainingDocument', TrainingDocumentSchema);
     const UserModel = this.connection.model('User', UserSchema);
     const GrantModel = this.connection.model('AccessGrant', AccessGrantSchema);
 
     const catalog = buildCatalog();
+
+    // Référentiel des catégories déduit des formations du catalogue.
+    const categoryNames = Array.from(
+      new Set(catalog.formations.map((f) => f.category).filter(Boolean)),
+    );
+    const categories = categoryNames.map((name, i) => ({
+      _id: `cat-${slug(name)}-${i + 1}`,
+      name,
+      order: i + 1,
+    }));
+    await CategoryModel.insertMany(categories);
+
     await FormationModel.insertMany(catalog.formations);
     await LevelModel.insertMany(catalog.levels);
     await DocumentModel.insertMany(catalog.documents);
@@ -71,9 +85,21 @@ export class SeedService {
 
     // eslint-disable-next-line no-console
     console.log(
-      `✅ Seed terminé : ${catalog.formations.length} formations, ` +
+      `✅ Seed terminé : ${categories.length} catégories, ` +
+        `${catalog.formations.length} formations, ` +
         `${catalog.levels.length} niveaux, ${catalog.documents.length} documents, ` +
         `${users.length} comptes utilisateurs.`,
     );
   }
+}
+
+/** Slugifie un nom (même convention que l'admin) pour générer un id métier. */
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
 }

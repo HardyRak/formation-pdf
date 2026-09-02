@@ -112,7 +112,7 @@ check('access → grant legacy sans crash', htmlAccess.includes('Sophie Martin')
 check('access → grant legacy affiché « Tous les niveaux »', htmlAccess.includes('Tous les niveaux'));
 check('access → grant legacy affiché « Tous les documents »', htmlAccess.includes('Tous les documents'));
 
-// 4) FormationsPage : icône rendue depuis un fichier SVG (mask) + actions wrappées.
+// 4) FormationsPage : icône rendue en SVG inline (« trait ») + actions wrappées.
 const htmlFormations = renderToString(
   <MemoryRouter>
     <QueryClientProvider client={makeClient('formations')}>
@@ -122,8 +122,8 @@ const htmlFormations = renderToString(
 );
 check('formations → carte rendue', norm(htmlFormations).includes('Angular &amp; Ionic'));
 check(
-  'formations → icône SVG en mask (data URL)',
-  htmlFormations.includes('mask-image:url(data:image/svg+xml'),
+  'formations → icône en SVG inline (trait currentColor)',
+  htmlFormations.includes('<svg') && htmlFormations.includes('stroke='),
 );
 check(
   'formations → actions en flex-wrap (boutons ne débordent pas)',

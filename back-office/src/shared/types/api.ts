@@ -37,6 +37,12 @@ export interface FormationDto {
   mandatory: boolean;
 }
 
+export interface CategoryDto {
+  id: string;
+  name: string;
+  order: number;
+}
+
 export interface LevelDto {
   id: string;
   formationId: string;
