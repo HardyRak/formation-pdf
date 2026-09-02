@@ -108,10 +108,9 @@ async function request<T>(
   }
 }
 
-/** Binaire (upload / download de PDF) — renvoie un Blob. */
-export async function requestBlob(path: string): Promise<Blob> {
+/** Téléchargement binaire (PDF) — renvoie un Blob, avec jeton Bearer. */
+async function rawBlob(path: string, token: string | null): Promise<Blob> {
   const headers: Record<string, string> = {};
-  const token = getAccessToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_PREFIX}${path}`, { method: 'GET', headers });
   if (!res.ok) {
@@ -120,6 +119,23 @@ export async function requestBlob(path: string): Promise<Blob> {
     throw { status: res.status, code: 'HTTP_ERROR', message: `Erreur HTTP ${res.status}` } satisfies ApiError;
   }
   return res.blob();
+}
+
+/**
+ * Binaire (download de PDF) — renvoie un Blob.
+ * Comme pour le JSON, un 401 déclenche un refresh du jeton puis un rejeu.
+ */
+export async function requestBlob(path: string): Promise<Blob> {
+  try {
+    return await rawBlob(path, getAccessToken());
+  } catch (error) {
+    const apiErr = toApiError(error);
+    if (apiErr.status === 401) {
+      const refreshed = await onUnauthorized(apiErr);
+      if (refreshed) return rawBlob(path, refreshed);
+    }
+    throw apiErr;
+  }
 }
 
 export const api = {

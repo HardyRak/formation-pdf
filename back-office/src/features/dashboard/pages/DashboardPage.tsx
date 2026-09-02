@@ -35,7 +35,7 @@ export function DashboardPage() {
 
             <div style={styles.sections}>
               <Card>
-                <h3 style={styles.sectionTitle}>Complétion par formation</h3>
+                <h3 style={styles.sectionTitle}>Répartition du catalogue par formation</h3>
                 {s.perFormation.length === 0 ? (
                   <p style={styles.emptyText}>Aucun document encore importé.</p>
                 ) : (

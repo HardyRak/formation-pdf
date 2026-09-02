@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   api,
+  API_PREFIX,
   configureHttpClient,
   isApiError,
   SESSION_KEY,
@@ -29,6 +30,9 @@ const initial: SessionState = {
 
 const isManager = (user: UserDto | null): boolean => user?.role === 'MANAGER';
 
+/** Refresh en cours partagé (single-flight) — hors state pour ne pas déclencher de rendu. */
+let refreshInFlight: Promise<string | null> | null = null;
+
 export const useSessionStore = create<
   SessionState & {
     login: (email: string, password: string) => Promise<boolean>;
@@ -54,26 +58,35 @@ export const useSessionStore = create<
   async function refreshSession(): Promise<string | null> {
     const current = get().session;
     if (!current) return null;
-    try {
-      const session = await api.post<AuthSessionDto>(
-        '/auth/refresh',
-        { refreshToken: current.refreshToken },
-        { anonymous: true },
-      );
-      await persistSession(session);
-      set({
-        session: {
-          accessToken: session.accessToken,
-          refreshToken: session.refreshToken,
-          expiresAt: session.expiresAt,
-        },
-        user: session.user,
-      });
-      return session.accessToken;
-    } catch {
-      await get().logout('Votre session a expiré. Merci de vous reconnecter.');
-      return null;
-    }
+    // Single-flight : si un refresh est déjà en cours, on s'y rattache pour ne
+    // pas déclencher plusieurs rotations de refresh token en parallèle (qui
+    // s'invalideraient mutuellement et forceraient une reconnexion).
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+      try {
+        const session = await api.post<AuthSessionDto>(
+          '/auth/refresh',
+          { refreshToken: current.refreshToken },
+          { anonymous: true },
+        );
+        await persistSession(session);
+        set({
+          session: {
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            expiresAt: session.expiresAt,
+          },
+          user: session.user,
+        });
+        return session.accessToken;
+      } catch {
+        await get().logout('Votre session a expiré. Merci de vous reconnecter.');
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+    return refreshInFlight;
   }
 
   // Configure les intercepteurs du client HTTP.
@@ -117,6 +130,17 @@ export const useSessionStore = create<
         );
         // Le back-office est réservé aux responsables de formation.
         if (!isManager(session.user)) {
+          // Best-effort : on révoque la session qui vient d'être ouverte côté
+          // serveur (le refresh token ne doit pas rester actif pour un compte
+          // refusé sur le back-office). On n'attend pas la réussite réseau.
+          try {
+            await fetch(`${API_PREFIX}/auth/logout`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.accessToken}` },
+            });
+          } catch {
+            /* non bloquant : la session n'est de toute façon pas conservée */
+          }
           set({
             status: 'error',
             error: {

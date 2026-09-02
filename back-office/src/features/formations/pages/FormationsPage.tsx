@@ -9,6 +9,7 @@ import {
   FormGrid,
   PageHeader,
   QueryGate,
+  Select,
   TextArea,
   TextField,
 } from '@/shared/components';
@@ -107,11 +108,17 @@ export function FormationsPage() {
                   onChange={(e) => setEditing({ ...editing, category: e.target.value })}
                 />
               </Field>
-              <Field label={`Icône (${Object.keys(FORMATION_ICONS).join(' · ')})`}>
-                <TextField
+              <Field label="Icône">
+                <Select
                   value={editing.icon ?? 'library'}
                   onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
-                />
+                >
+                  {Object.keys(FORMATION_ICONS).map((key) => (
+                    <option key={key} value={key}>
+                      {key}
+                    </option>
+                  ))}
+                </Select>
               </Field>
               <Field label="Couleur">
                 <TextField

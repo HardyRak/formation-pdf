@@ -16,6 +16,7 @@ import { useLevels } from '@/features/formations/hooks/useLevels';
 import { useDocuments } from '@/features/formations/hooks/useDocuments';
 import { useGrants } from '../hooks/useGrants';
 import { useUsers } from '../hooks/useUsers';
+import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
 export function AccessPage() {
@@ -46,6 +47,10 @@ export function AccessPage() {
   for (const u of users) userNames[u.id] = `${u.firstName} ${u.lastName}`;
   const formationNames: Record<string, string> = {};
   for (const f of formations) formationNames[f.id] = f.name;
+
+  // Titres des documents référencés par les grants (pour libeller la révocation).
+  const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
+  const documentTitles = useDocumentTitles(grantedDocIds);
 
   const handleFormationChange = (value: string) => {
     setFormationId(value);
@@ -193,12 +198,14 @@ export function AccessPage() {
                             <ConfirmButton
                               key={d}
                               variant="ghost"
-                              confirmMessage="Retirer l'accès à ce document ?"
+                              confirmMessage={`Retirer l'accès au document « ${
+                                documentTitles[d] ?? 'ce document'
+                              } » ?`}
                               onClick={() =>
                                 revokeDocumentMutation.mutate({ userId: grant.userId, documentId: d })
                               }
                             >
-                              Retirer {d.slice(0, 12)}…
+                              Retirer : {documentTitles[d] ?? 'Document…'}
                             </ConfirmButton>
                           ))
                         : null}
