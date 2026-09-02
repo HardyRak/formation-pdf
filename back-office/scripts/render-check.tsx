@@ -1,8 +1,10 @@
 /** Vérification runtime (SSR) de QueryGate + pages : `npm run test:render`. */
 import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DashboardPage } from '../src/pages/DashboardPage';
 import { AccessPage } from '../src/pages/AccessPage';
+import { FormationsPage } from '../src/pages/FormationsPage';
 
 const stats = {
   users: 3,
@@ -25,7 +27,7 @@ const users = {
   items: [{ id: 'usr-1', firstName: 'Sophie', lastName: 'Martin', email: 'sophie@x.io' }],
 };
 
-function makeClient(seed: 'none' | 'dashboard' | 'access') {
+function makeClient(seed: 'none' | 'dashboard' | 'access' | 'formations') {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
@@ -37,6 +39,23 @@ function makeClient(seed: 'none' | 'dashboard' | 'access') {
     qc.setQueryData(['grants'], [legacyGrant]);
     qc.setQueryData(['users'], users);
     qc.setQueryData(['formations'], formations);
+  }
+  if (seed === 'formations') {
+    qc.setQueryData(['formations'], [
+      {
+        id: 'f-ang',
+        name: 'Angular & Ionic',
+        category: 'Développement',
+        description: 'Applications mobiles hybrides.',
+        icon: 'phone-portrait',
+        color: '#6366F1',
+        mandatory: false,
+        order: 1,
+        levelsCount: 3,
+        documentsCount: 6,
+        totalPages: 43,
+      },
+    ]);
   }
   return qc;
 }
@@ -86,7 +105,19 @@ check('access → grant legacy sans crash', htmlAccess.includes('Sophie Martin')
 check('access → grant legacy affiché « Tous les niveaux »', htmlAccess.includes('Tous les niveaux'));
 check('access → grant legacy affiché « Tous les documents »', htmlAccess.includes('Tous les documents'));
 
-// 4) Sanity : pendant la capture, une liste volontairement cassée DOIT produire
+// 4) FormationsPage : icône rendue depuis un fichier SVG (mask) + actions wrappées.
+const htmlFormations = renderToString(
+  <MemoryRouter>
+    <QueryClientProvider client={makeClient('formations')}>
+      <FormationsPage />
+    </QueryClientProvider>
+  </MemoryRouter>,
+);
+check('formations → carte rendue', norm(htmlFormations).includes('Angular &amp; Ionic'));
+check('formations → icône SVG en mask (data URL)', htmlFormations.includes('mask-image:url(data:image/svg+xml'));
+check('formations → actions en flex-wrap (boutons ne débordent pas)', htmlFormations.includes('flex-wrap:wrap'));
+
+// 5) Sanity : pendant la capture, une liste volontairement cassée DOIT produire
 // un warning — prouve que l'assertion suivante n'est pas vide.
 const warningsBefore = reactErrors.filter((e) => e.includes('unique "key"')).length;
 renderToString(
@@ -99,7 +130,7 @@ check('sanity → la capture détecte un warning key volontaire', warningsAfter 
 
 console.error = originalError;
 
-// 5) Aucun warning React « unique key » sur les rendus des pages.
+// 6) Aucun warning React « unique key » sur les rendus des pages.
 check('aucun warning « unique key » sur les pages', warningsBefore === 0);
 
 process.exit(failed ? 1 : 0);

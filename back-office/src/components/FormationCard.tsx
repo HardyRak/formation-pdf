@@ -4,6 +4,7 @@ import { Card } from './Card';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { ConfirmButton } from './ConfirmButton';
+import { FormationIcon } from './FormationIcon';
 
 export function FormationCard({
   formation,
@@ -19,8 +20,8 @@ export function FormationCard({
   return (
     <Card style={styles.card}>
       <div style={styles.header}>
-        <div style={{ ...styles.tile, background: formation.color + '22', color: formation.color }}>
-          {formation.icon}
+        <div style={{ ...styles.tile, background: formation.color + '22' }}>
+          <FormationIcon name={formation.icon} color={formation.color} />
         </div>
         <div style={styles.names}>
           <div style={styles.name}>{formation.name}</div>

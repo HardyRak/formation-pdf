@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listFormations, createFormation, updateFormation, deleteFormation } from '../api/admin';
 import type { FormationDto } from '../api/types';
+import { FORMATION_ICONS } from '../assets/icons';
 import {
   Button,
   CheckboxField,
@@ -102,7 +103,7 @@ export function FormationsPage() {
               <Field label="Catégorie">
                 <TextField value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} />
               </Field>
-              <Field label="Icône (nom Ionicons)">
+              <Field label={`Icône (${Object.keys(FORMATION_ICONS).join(' · ')})`}>
                 <TextField value={editing.icon ?? 'library'} onChange={(e) => setEditing({ ...editing, icon: e.target.value })} />
               </Field>
               <Field label="Couleur">

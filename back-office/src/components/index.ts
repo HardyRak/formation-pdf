@@ -13,6 +13,7 @@ export { FilePickerButton } from './FilePickerButton';
 export { FormCard } from './FormCard';
 export { FormGrid } from './FormGrid';
 export { FormationCard } from './FormationCard';
+export { FormationIcon } from './FormationIcon';
 export { Layout } from './Layout';
 export { ListRow } from './ListRow';
 export { Loading } from './Loading';

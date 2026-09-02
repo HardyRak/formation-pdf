@@ -39,5 +39,5 @@ export const styles: {
     minHeight: '40px',
   },
   counts: { display: 'flex', gap: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--text-faint)' },
-  actions: { display: 'flex', gap: '8px', marginTop: 'auto' },
+  actions: { display: 'flex', gap: '8px', marginTop: 'auto', flexWrap: 'wrap' },
 };
