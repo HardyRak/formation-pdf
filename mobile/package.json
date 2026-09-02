@@ -26,7 +26,7 @@
     "react-native": "0.86.2",
     "react-native-blob-util": "^0.24.10",
     "react-native-gesture-handler": "^3.2.1",
-    "react-native-pdf": "^6.7.7",
+    "react-native-pdf": "^7.0.5",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "^5.9.0",
     "react-native-screens": "^4.27.0",
