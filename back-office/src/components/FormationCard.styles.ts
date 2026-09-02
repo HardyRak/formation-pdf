@@ -10,6 +10,7 @@ export const styles: {
   description: CSSProperties;
   counts: CSSProperties;
   actions: CSSProperties;
+  actionButton: CSSProperties;
 } = {
   card: { display: 'flex', flexDirection: 'column', gap: '12px' },
   header: { display: 'flex', alignItems: 'center', gap: '10px' },
@@ -40,4 +41,6 @@ export const styles: {
   },
   counts: { display: 'flex', gap: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--text-faint)' },
   actions: { display: 'flex', gap: '8px', marginTop: 'auto', flexWrap: 'wrap' },
+  // Boutons compacts : les 3 actions tiennent sur UNE ligne dans la carte.
+  actionButton: { padding: '10px 12px' },
 };

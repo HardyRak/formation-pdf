@@ -116,6 +116,7 @@ const htmlFormations = renderToString(
 check('formations → carte rendue', norm(htmlFormations).includes('Angular &amp; Ionic'));
 check('formations → icône SVG en mask (data URL)', htmlFormations.includes('mask-image:url(data:image/svg+xml'));
 check('formations → actions en flex-wrap (boutons ne débordent pas)', htmlFormations.includes('flex-wrap:wrap'));
+check('formations → grille assez large pour une ligne de boutons (340px)', htmlFormations.includes('minmax(340px, 1fr)'));
 
 // 5) Sanity : pendant la capture, une liste volontairement cassée DOIT produire
 // un warning — prouve que l'assertion suivante n'est pas vide.

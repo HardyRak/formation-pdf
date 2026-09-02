@@ -38,16 +38,17 @@ export function FormationCard({
         <span>{formation.totalPages} pages</span>
       </div>
       <div style={styles.actions}>
-        <Button variant="secondary" onClick={onOpenLevels}>
+        <Button variant="secondary" onClick={onOpenLevels} style={styles.actionButton}>
           Niveaux
         </Button>
-        <Button variant="ghost" onClick={onEdit}>
+        <Button variant="ghost" onClick={onEdit} style={styles.actionButton}>
           Éditer
         </Button>
         <ConfirmButton
           variant="danger"
           confirmMessage={`Supprimer la formation « ${formation.name} » ?`}
           onClick={onDelete}
+          style={styles.actionButton}
         >
           Supprimer
         </ConfirmButton>
