@@ -16,6 +16,7 @@ export function ComboBox({
   options,
   placeholder,
   allowCreate = true,
+  onCreate,
   invalid,
 }: {
   value: string;
@@ -23,10 +24,17 @@ export function ComboBox({
   options: string[];
   placeholder?: string;
   allowCreate?: boolean;
+  /**
+   * Quand fourni, appelé lors du choix de « Créer… » (création persistée en
+   * BDD). Reçoit le nom saisi ; si la promesse résout avec une chaîne, c'est
+   * cette valeur (normalisée par le serveur) qui est posée dans le champ.
+   */
+  onCreate?: (name: string) => Promise<string | void> | string | void;
   invalid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [creating, setCreating] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
@@ -54,8 +62,20 @@ export function ComboBox({
     return () => document.removeEventListener('mousedown', onPointer);
   }, [open]);
 
-  const choose = (label: string) => {
-    onChange(label);
+  const choose = async (label: string, isCreate = false) => {
+    // Création persistée : on appelle `onCreate` puis on pose la valeur
+    // (normalisée par le serveur s'il en retourne une).
+    if (isCreate && onCreate) {
+      setCreating(true);
+      try {
+        const created = await onCreate(label);
+        onChange(typeof created === 'string' && created ? created : label);
+      } finally {
+        setCreating(false);
+      }
+    } else {
+      onChange(label);
+    }
     setOpen(false);
     setActiveIndex(-1);
     inputRef.current?.focus();
@@ -71,11 +91,13 @@ export function ComboBox({
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       if (activeIndex >= 0 && rows[activeIndex]) {
+        const row = rows[activeIndex];
         e.preventDefault();
-        choose(rows[activeIndex].label);
+        void choose(row.label, row.kind === 'create');
       } else if (canCreate) {
         // Entrée avec une saisie libre non matchée → on crée.
-        choose(value.trim());
+        e.preventDefault();
+        void choose(value.trim(), true);
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -94,12 +116,14 @@ export function ComboBox({
         aria-autocomplete="list"
         aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
         value={value}
-        placeholder={placeholder}
+        placeholder={creating ? 'Création…' : placeholder}
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);
           setActiveIndex(-1);
         }}
+        aria-busy={creating}
+        readOnly={creating}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         style={{ ...styles.input, ...(invalid ? { borderColor: 'var(--danger)' } : null) }}
@@ -132,14 +156,14 @@ export function ComboBox({
               role="option"
               id={`${listId}-${filtered.length}`}
               onMouseEnter={() => setActiveIndex(filtered.length)}
-              onClick={() => choose(value.trim())}
+              onClick={() => void choose(value.trim(), true)}
               style={{
                 ...styles.createRow,
                 ...(activeIndex === filtered.length ? styles.optionSelected : null),
               }}
             >
-              <span>＋</span>
-              <span>Créer « </span>
+              <span>{creating ? '⏳' : '＋'}</span>
+              <span>{creating ? 'Création… « ' : 'Créer « '}</span>
               <span style={styles.createLabel}>{value.trim()}</span>
               <span> »</span>
             </button>

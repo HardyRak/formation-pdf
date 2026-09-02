@@ -12,8 +12,8 @@ export function FormationsPage() {
   const navigate = useNavigate();
   const { formations, isLoading, isError, error, refetch, createMutation, updateMutation, deleteMutation } =
     useFormations();
-  // Catégories depuis le référentiel backend (création à la volée côté serveur).
-  const { categoryNames } = useCategories();
+  // Catégories depuis le référentiel backend ; création persistée immédiate.
+  const { categoryNames, createCategory } = useCategories();
 
   // null = fermé ; 'new' = création ; { …formation } = édition.
   const [editing, setEditing] = useState<FormationDto | 'new' | null>(null);
@@ -74,6 +74,7 @@ export function FormationsPage() {
             key={editing === 'new' ? 'new' : editing.id}
             initial={editing === 'new' ? undefined : editing}
             categories={categoryNames}
+            onCreateCategory={createCategory}
             submitting={isSaving}
             error={formError}
             onSubmit={handleSubmit}

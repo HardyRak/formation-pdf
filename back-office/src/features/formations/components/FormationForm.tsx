@@ -36,8 +36,8 @@ const DEFAULTS: FormationFormValues = {
 /**
  * Création / édition d'une formation dans une **modale**, piloté par
  * react-hook-form.
- * - Catégorie : ComboBox (recherche + création à la volée) sur les catégories
- *   existantes déduites du catalogue.
+ * - Catégorie : ComboBox (recherche + création persistée en BDD via
+ *   `onCreateCategory`) sur les catégories du référentiel backend.
  * - Icône : IconPicker (grille de pictogrammes SVG).
  * - Couleur : ColorPicker (palette + choix libre).
  */
@@ -47,6 +47,7 @@ export function FormationForm({
   submitting,
   error,
   onSubmit,
+  onCreateCategory,
   onClose,
 }: {
   initial?: Partial<FormationDto>;
@@ -54,6 +55,8 @@ export function FormationForm({
   submitting?: boolean;
   error?: string | null;
   onSubmit: (values: FormationFormValues) => void;
+  /** Persiste une nouvelle catégorie en BDD ; retourne son nom normalisé. */
+  onCreateCategory?: (name: string) => Promise<string | void>;
   onClose: () => void;
 }) {
   const isNew = !initial?.id;
@@ -129,6 +132,7 @@ export function FormationForm({
                   value={field.value}
                   onChange={field.onChange}
                   options={categories}
+                  onCreate={onCreateCategory}
                   placeholder="Rechercher / créer…"
                   invalid={!!errors.category}
                 />
