@@ -77,7 +77,10 @@ export const useSessionStore = create<SessionState & {
         const userFromStorage = session.user as unknown;
         set({ session, user: (userFromStorage as UserDto) ?? null, status: 'authenticated' });
         // Récupère le profil frais + vérifie le rôle.
-        await refreshSession();
+        const token = await refreshSession();
+        // Succès : on débloque l'écran « Chargement… ».
+        // (En cas d'échec, refreshSession() a appelé logout() qui le fait déjà.)
+        if (token) set({ bootstrapping: false });
       } catch {
         await persistSession(null);
         set({ session: null, user: null, bootstrapping: false, status: 'idle' });

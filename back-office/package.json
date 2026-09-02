@@ -9,6 +9,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "test:render": "esbuild scripts/render-check.tsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.svg=dataurl --outfile=/tmp/bo-render-check.cjs --log-level=error && node /tmp/bo-render-check.cjs",
+    "test:session": "esbuild scripts/session-check.ts --bundle --platform=node --format=cjs --outfile=/tmp/bo-session-check.cjs --log-level=error && node /tmp/bo-session-check.cjs",
+    "test": "npm run test:render && npm run test:session",
     "preview": "vite preview"
   },
   "dependencies": {
