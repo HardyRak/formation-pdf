@@ -178,6 +178,28 @@ async function main(): Promise<number> {
   assert((await access.canReadDocument({ ...learner, id: 'usr-3' }, docCyber)) === false, 'doc-cyb-1 révoqué');
   assert((await access.canReadDocument({ ...learner, id: 'usr-3' }, docCyber2)) === true, 'doc-cyb-2 conservé');
 
+  console.log('\n--- 6. Grant ancien sans `documentIds` (donnée pré-migration) ---');
+  // Simule un document écrit en base AVANT l'ajout du champ : le champ est
+  // absent (pas même `[]`). Le service doit normaliser, pas crasher.
+  grants.seed('usr-4', 'f-old', {
+    levelIds: ['l-old-1'],
+    documentIds: undefined as unknown as string[],
+  });
+  const docOld: AccessibleDocument = { _id: 'doc-old-1', formationId: 'f-old', levelId: 'l-old-1' };
+  assert(
+    (await access.canReadDocument({ ...learner, id: 'usr-4' }, docOld)) === true,
+    'grant ancien : documentIds absent lu comme « tous les documents »',
+  );
+  const listed = await access.listGrants('usr-4');
+  assert(
+    Array.isArray(listed[0]?.documentIds) && (listed[0].documentIds as string[]).length === 0,
+    'listGrants normalise documentIds en []',
+  );
+  assert(
+    Array.isArray(listed[0]?.levelIds) && (listed[0].levelIds as string[]).length === 1,
+    'listGrants conserve levelIds',
+  );
+
   console.log('\n✅ TOUS LES TESTS D\'ACCÈS PASSENT.');
   return 0;
 }

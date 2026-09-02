@@ -20,6 +20,14 @@ import { getUploadDir } from './uploads';
 
 type AnyDoc = Record<string, unknown> & { _id: string };
 
+/** Document lean + alias `id` attendu par le back-office (contrat DTO). */
+type AdminDoc = AnyDoc & { id: string };
+
+/** Les documents Mongoose lean portent `_id` ; le back-office lit `id`. */
+function withId(doc: AnyDoc): AdminDoc {
+  return { ...doc, id: doc._id };
+}
+
 /** Réponse générique d'un CRUD admin. */
 export interface AdminList<T> {
   total: number;
@@ -186,8 +194,9 @@ export class AdminService {
 
   // ---- Formations ---------------------------------------------------------
 
-  async listFormations(): Promise<AnyDoc[]> {
-    return this.formations.find().sort({ order: 1 }).lean();
+  async listFormations(): Promise<AdminDoc[]> {
+    const rows = (await this.formations.find().sort({ order: 1 }).lean()) as AnyDoc[];
+    return rows.map(withId);
   }
 
   async createFormation(input: {
@@ -245,7 +254,8 @@ export class AdminService {
   async listLevels(formationId: string): Promise<AnyDoc[]> {
     const formation = await this.formations.findById(formationId).lean();
     if (!formation) throw new ApiException(404, 'NOT_FOUND', 'Formation introuvable.');
-    return this.levels.find({ formationId }).sort({ order: 1 }).lean();
+    const rows = (await this.levels.find({ formationId }).sort({ order: 1 }).lean()) as AnyDoc[];
+    return rows.map(withId);
   }
 
   async createLevel(
@@ -295,16 +305,17 @@ export class AdminService {
   async listDocuments(levelId: string): Promise<AnyDoc[]> {
     const level = await this.levels.findById(levelId).lean();
     if (!level) throw new ApiException(404, 'NOT_FOUND', 'Niveau introuvable.');
-    return this.documents
+    const rows = (await this.documents
       .find({ levelId }, { pages: 0 })
       .sort({ order: 1 })
-      .lean();
+      .lean()) as AnyDoc[];
+    return rows.map(withId);
   }
 
-  async getDocument(id: string): Promise<AnyDoc> {
+  async getDocument(id: string): Promise<AdminDoc> {
     const doc = await this.documents.findById(id, { pages: 0 }).lean();
     if (!doc) throw new ApiException(404, 'NOT_FOUND', 'Document introuvable.');
-    return doc;
+    return withId(doc as AnyDoc);
   }
 
   /** Crée un document et lui attache un fichier PDF (à partir de l'upload). */

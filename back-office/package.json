@@ -8,6 +8,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
+    "test:render": "esbuild scripts/render-check.tsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.svg=dataurl --tsconfig=tsconfig.json --outfile=/tmp/bo-render-check.cjs --log-level=error && node /tmp/bo-render-check.cjs",
+    "test:session": "esbuild scripts/session-check.ts --bundle --platform=node --format=cjs --tsconfig=tsconfig.json --outfile=/tmp/bo-session-check.cjs --log-level=error && node /tmp/bo-session-check.cjs",
+    "test:boot": "esbuild scripts/app-boot-check.tsx --bundle --platform=node --format=cjs --jsx=automatic --loader:.svg=dataurl --loader:.css=empty --external:jsdom --tsconfig=tsconfig.json --outfile=node_modules/.cache/bo-boot-check.cjs --log-level=error && node node_modules/.cache/bo-boot-check.cjs",
+    "test": "npm run test:render && npm run test:session && npm run test:boot",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.{ts,tsx}\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -18,11 +25,18 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@types/node": "^22.20.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "jsdom": "^30.0.1",
+    "prettier": "^3.4.2",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
     "vite": "^6.0.3"
   }
 }
