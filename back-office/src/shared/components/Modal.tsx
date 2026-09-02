@@ -30,7 +30,12 @@ export function Modal({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissible) onClose();
+      // Si un panneau (ComboBox/IconPicker/ColorPicker) est ouvert, c'est lui
+      // qui consomme Échap ; la modale ne se ferme qu'au deuxième appui.
+      if (e.key === 'Escape') {
+        if (document.body.hasAttribute('data-popover')) return;
+        if (dismissible) onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     const previousOverflow = document.body.style.overflow;

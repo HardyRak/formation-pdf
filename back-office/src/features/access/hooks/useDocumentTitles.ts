@@ -1,29 +1,22 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { documentService } from '@/features/formations/services/documentService';
 
 /**
  * Résout le titre des documents référencés par les attributions d'accès.
  *
- * Les grants ne portent que des `documentIds` ; pour afficher (et faire
- * confirmer) la révocation d'un document précis, on récupère son titre via
- * l'endpoint admin existant. Les IDs dédoublonnés sont chargés en parallèle
- * et mis en cache par TanStack Query.
+ * Une seule requête en lot (`POST /admin/documents/titles`) pour tous les
+ * identifiants, au lieu d'une requête par document. La clé de cache dépend de
+ * la liste dédoublonnée et triée des identifiants.
  */
 export function useDocumentTitles(documentIds: string[]): Record<string, string> {
-  const ids = Array.from(new Set(documentIds.filter(Boolean)));
+  const ids = Array.from(new Set(documentIds.filter(Boolean))).sort();
 
-  const results = useQueries({
-    queries: ids.map((id) => ({
-      queryKey: ['document', id],
-      queryFn: () => documentService.get(id),
-      staleTime: 60_000,
-    })),
+  const query = useQuery({
+    queryKey: ['document-titles', ids],
+    queryFn: () => documentService.titles(ids),
+    enabled: ids.length > 0,
+    staleTime: 60_000,
   });
 
-  const titles: Record<string, string> = {};
-  results.forEach((res, i) => {
-    const id = ids[i];
-    if (id && res.data) titles[id] = res.data.title;
-  });
-  return titles;
+  return query.data ?? {};
 }

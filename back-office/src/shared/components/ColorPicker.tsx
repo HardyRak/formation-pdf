@@ -1,33 +1,18 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { Popover } from './Popover';
 import { PALETTE, styles } from './ColorPicker.styles';
 
 /**
  * Sélecteur de couleur dédié (équivalent « pensé comme » un champ couleur,
  * mais avec une palette d'entreprise + choix libre). Composant contrôlé.
  *
- * Le déclencheur est une pastille de la couleur courante ; le panneau propose
- * une palette prédéfinie et un `<input type="color">` natif pour le libre choix.
+ * Le déclencheur est une pastille de la couleur courante ; le panneau
+ * (palette + `<input type="color">`) s'ouvre dans un `Popover` (portail).
  */
 export function ColorPicker({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
@@ -48,7 +33,7 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (hex
         </span>
       </button>
 
-      {open ? (
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={rootRef} minWidth={232}>
         <div id={popoverId} role="dialog" style={styles.popover}>
           <div style={styles.palette}>
             {PALETTE.map((hex) => (
@@ -87,7 +72,7 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (hex
             />
           </div>
         </div>
-      ) : null}
+      </Popover>
     </div>
   );
 }

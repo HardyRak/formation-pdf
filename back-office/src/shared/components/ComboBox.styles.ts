@@ -4,7 +4,7 @@ import { inputControl } from './inputControl.styles';
 export const styles: {
   root: CSSProperties;
   input: CSSProperties;
-  popover: CSSProperties;
+  panel: CSSProperties;
   option: CSSProperties;
   optionSelected: CSSProperties;
   createRow: CSSProperties;
@@ -16,19 +16,14 @@ export const styles: {
   input: {
     ...inputControl,
   },
-  popover: {
-    position: 'absolute',
-    zIndex: 30,
-    marginTop: '6px',
+  // Rendu dans un portail (Popover) : pas de positionnement ici.
+  panel: {
     background: 'var(--surface-elevated)',
     border: '1px solid var(--border)',
     borderRadius: '12px',
     boxShadow: '0 18px 40px rgba(17, 22, 52, 0.16)',
     padding: '6px',
-    maxHeight: '220px',
-    overflowY: 'auto',
     width: '100%',
-    minWidth: '220px',
   },
   option: {
     display: 'flex',

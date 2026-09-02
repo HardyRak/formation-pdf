@@ -194,6 +194,23 @@ export class AdminService {
     return { success: true };
   }
 
+  // ---- Documents (titres en lot) --------------------------------------------
+
+  /**
+   * Résout les titres d'un lot de documents en une seule requête (évite le
+   * N+1 côté back-office lors de l'affichage des attributions d'accès).
+   */
+  async documentTitles(ids: string[]): Promise<Record<string, string>> {
+    const unique = Array.from(new Set(ids.filter(Boolean)));
+    if (unique.length === 0) return {};
+    const docs = (await this.documents
+      .find({ _id: { $in: unique } }, { title: 1 })
+      .lean()) as Array<{ _id: string; title?: string }>;
+    const map: Record<string, string> = {};
+    for (const d of docs) map[d._id] = d.title ?? d._id;
+    return map;
+  }
+
   // ---- Catégories ----------------------------------------------------------
 
   async listCategories(): Promise<AdminDoc[]> {
@@ -215,7 +232,7 @@ export class AdminService {
       .lean();
     if (existing) return (existing.name as string) ?? name;
     const count = await this.categories.countDocuments();
-    const _id = `cat-${slug(name)}-${count + 1}`;
+    const _id = `cat-${slug(name)}-${shortId()}`;
     await this.categories.create({ _id, name, order: count + 1 });
     return name;
   }
@@ -228,7 +245,7 @@ export class AdminService {
       .lean();
     if (dup) throw new ApiException(409, 'CONFLICT', 'Cette catégorie existe déjà.');
     const count = await this.categories.countDocuments();
-    const _id = `cat-${slug(name)}-${count + 1}`;
+    const _id = `cat-${slug(name)}-${shortId()}`;
     await this.categories.create({ _id, name, order: count + 1 });
     return (await this.categories.findById(_id).lean()) as AnyDoc;
   }
@@ -627,4 +644,12 @@ function slug(value: string): string {
 /** Échappe les caractères spéciaux d'une expression régulière. */
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Identifiant court et unique (suffixe aléatoire) pour éviter toute collision
+ * de clé lors de créations parallèles (le `count+1` ne le garantit pas).
+ */
+function shortId(): string {
+  return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 }

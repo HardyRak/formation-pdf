@@ -22,6 +22,7 @@ import { pdfMulterStorage } from './uploads';
 import { ApiException } from '../common/api-exception';
 import {
   CreateCategoryDto,
+  DocumentTitlesDto,
   CreateDocumentDto,
   CreateFormationDto,
   CreateLevelDto,
@@ -176,6 +177,11 @@ export class AdminController {
   @Get('levels/:id/documents')
   listDocuments(@Param('id') id: string) {
     return this.admin.listDocuments(id);
+  }
+
+  @Post('documents/titles')
+  documentTitles(@Body() dto: DocumentTitlesDto) {
+    return this.admin.documentTitles(dto.ids ?? []);
   }
 
   @Get('documents/:id')

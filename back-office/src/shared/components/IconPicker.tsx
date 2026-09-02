@@ -1,13 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { FORMATION_ICON_NAMES, FormationGlyph } from '@/assets/icons/formations';
+import { Popover } from './Popover';
 import { styles } from './IconPicker.styles';
 
 /**
  * Sélecteur d'icônes dédié (comme un champ couleur, mais avec une grille de
  * pictogrammes). Composant contrôlé : `value` / `onChange(name)`.
  *
- * Le rendu est un bouton-déclencheur affichant l'icône courante ; au clic, un
- * panneau liste toutes les icônes disponibles dans une grille.
+ * Le déclencheur affiche l'icône courante ; au clic, une grille de toutes les
+ * icônes s'ouvre dans un `Popover` (portail : non rogné par une modale).
  */
 export function IconPicker({
   value,
@@ -23,23 +24,6 @@ export function IconPicker({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverId = useId();
-
-  // Ferme le panneau quand on clique à l'extérieur ou sur Échap.
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
@@ -60,7 +44,7 @@ export function IconPicker({
         </span>
       </button>
 
-      {open ? (
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={rootRef} minWidth={320}>
         <div id={popoverId} role="dialog" style={styles.popover}>
           <div style={styles.grid}>
             {options.map((name) => {
@@ -88,7 +72,7 @@ export function IconPicker({
             })}
           </div>
         </div>
-      ) : null}
+      </Popover>
     </div>
   );
 }

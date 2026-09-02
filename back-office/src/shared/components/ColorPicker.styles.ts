@@ -44,17 +44,14 @@ export const styles: {
   placeholder: {
     color: 'var(--text-faint)',
   },
+  // Rendu dans un portail (Popover) : pas de positionnement ici.
   popover: {
-    position: 'absolute',
-    zIndex: 30,
-    marginTop: '6px',
     background: 'var(--surface-elevated)',
     border: '1px solid var(--border)',
     borderRadius: '14px',
     boxShadow: '0 18px 40px rgba(17, 22, 52, 0.18)',
     padding: '12px',
     width: '100%',
-    minWidth: '232px',
   },
   palette: {
     display: 'grid',

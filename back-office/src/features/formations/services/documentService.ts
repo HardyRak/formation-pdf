@@ -10,6 +10,9 @@ export const documentService = {
   get: async (id: string): Promise<TrainingDocumentDto> =>
     withId<TrainingDocumentDto>(await api.get<RawDoc>(`/admin/documents/${id}`)),
 
+  /** Résout les titres d'un lot de documents en une seule requête. */
+  titles: (ids: string[]) => api.post<Record<string, string>>('/admin/documents/titles', { ids }),
+
   create: (levelId: string, body: { title: string; description?: string }, file: File) => {
     const form = new FormData();
     form.append('file', file);

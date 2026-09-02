@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
+import { Popover } from './Popover';
 import { styles } from './ComboBox.styles';
 
 /**
@@ -6,9 +7,10 @@ import { styles } from './ComboBox.styles';
  *  - on tape pour filtrer les `options` existantes ;
  *  - on peut choisir une option au clic / Entrée ;
  *  - si la valeur saisie n'existe pas, une ligne « Créer « … » » permet de la
- *    créer à la volée.
+ *    créer à la volée (création persistée via `onCreate`).
  *
- * Composant contrôlé (comportement d'un `<input>` texte).
+ * Le panneau est rendu dans un portail (`Popover`) : il n'est pas rogné par
+ * une modale/zone défilante. Composant contrôlé (comportement d'un `<input>`).
  */
 export function ComboBox({
   value,
@@ -26,9 +28,9 @@ export function ComboBox({
   placeholder?: string;
   allowCreate?: boolean;
   /**
-   * Quand fourni, appelé lors du choix de « Créer… » (création persistée en
-   * BDD). Reçoit le nom saisi ; si la promesse résout avec une chaîne, c'est
-   * cette valeur (normalisée par le serveur) qui est posée dans le champ.
+   * Appelé lors du choix de « Créer… » (création persistée en BDD). Reçoit le
+   * nom saisi ; si la promesse résout avec une chaîne, c'est cette valeur
+   * (normalisée par le serveur) qui est posée dans le champ.
    */
   onCreate?: (name: string) => Promise<string | void> | string | void;
   /** Notifie un échec de création (ex. réseau / serveur) pour l'afficher. */
@@ -51,33 +53,19 @@ export function ComboBox({
   // Une valeur saisie qui ne correspond à aucune option → proposition de création.
   const canCreate = allowCreate && query.length > 0 && !options.some((o) => o.toLowerCase() === query);
 
-  // Navigation clavier : ↓/↑ dans la liste + création, Entrée, Échap.
-  const rows: Array<{ kind: 'option'; label: string } | { kind: 'create'; label: string }> = [
+  const rows: Array<{ kind: 'option' | 'create'; label: string }> = [
     ...filtered.map((label) => ({ kind: 'option' as const, label })),
     ...(canCreate ? [{ kind: 'create' as const, label: value.trim() }] : []),
   ];
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    return () => document.removeEventListener('mousedown', onPointer);
-  }, [open]);
-
   const choose = async (label: string, isCreate = false) => {
     setCreateError(null);
-    // Création persistée : on appelle `onCreate` puis on pose la valeur
-    // (normalisée par le serveur s'il en retourne une).
     if (isCreate && onCreate) {
       setCreating(true);
       try {
         const created = await onCreate(label);
         onChange(typeof created === 'string' && created ? created : label);
       } catch (err) {
-        // Échec réseau/serveur : on reste ouvert et on affiche l'erreur
-        // (sinon promesse non gérée + fermeture silencieuse).
         const message = (err as { message?: string } | null)?.message ?? 'Échec de la création.';
         setCreateError(message);
         onError?.(message);
@@ -107,7 +95,6 @@ export function ComboBox({
         e.preventDefault();
         void choose(row.label, row.kind === 'create');
       } else if (canCreate) {
-        // Entrée avec une saisie libre non matchée → on crée.
         e.preventDefault();
         void choose(value.trim(), true);
       }
@@ -142,8 +129,13 @@ export function ComboBox({
         style={{ ...styles.input, ...(invalid ? { borderColor: 'var(--danger)' } : null) }}
       />
 
-      {open && rows.length > 0 ? (
-        <div id={listId} role="listbox" style={styles.popover}>
+      <Popover
+        open={open && rows.length > 0}
+        onClose={() => setOpen(false)}
+        anchorRef={rootRef}
+        minWidth={220}
+      >
+        <div id={listId} role="listbox" style={styles.panel}>
           {filtered.map((label, i) => {
             const selected = label.toLowerCase() === query;
             const active = i === activeIndex;
@@ -155,7 +147,7 @@ export function ComboBox({
                 aria-selected={selected}
                 id={`${listId}-${i}`}
                 onMouseEnter={() => setActiveIndex(i)}
-                onClick={() => choose(label)}
+                onClick={() => void choose(label)}
                 style={{ ...styles.option, ...(selected || active ? styles.optionSelected : null) }}
               >
                 {label}
@@ -182,7 +174,7 @@ export function ComboBox({
             </button>
           ) : null}
         </div>
-      ) : null}
+      </Popover>
 
       {createError ? (
         <p
