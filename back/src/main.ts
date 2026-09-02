@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Express } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/api-exception.filter';
@@ -19,6 +20,14 @@ async function bootstrap(): Promise<void> {
     origin: config.get<string[]>('corsOrigins'),
     credentials: true,
   });
+
+  // Derrière un reverse proxy de confiance (TRUST_PROXY=true), on autorise
+  // Express à lire X-Forwarded-For afin de journaliser la vraie IP du client.
+  // Sinon, ces en-têtes (falsifiables) sont ignorés : `req.ip` = socket.
+  if (config.get<boolean>('trustProxy') === true) {
+    const express = app.getHttpAdapter().getInstance() as Express;
+    express.set('trust proxy', 1);
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({

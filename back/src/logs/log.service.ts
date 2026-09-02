@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 /** Utilisateur authentifié ayant émis la requête (extrait du JWT par les guards). */
 export interface LogUser {
@@ -32,12 +33,6 @@ export interface LogEntry {
   message: string;
 }
 
-/** Taille maximale du tampon mémoire (configurable via `LOG_BUFFER_SIZE`). */
-function resolveMaxEntries(): number {
-  const parsed = Number.parseInt(process.env.LOG_BUFFER_SIZE ?? '1000', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000;
-}
-
 /**
  * Tampon en mémoire des dernières requêtes HTTP.
  * Servi par `GET /logs` (back-office) et consultable en cas de diagnostic.
@@ -48,7 +43,12 @@ function resolveMaxEntries(): number {
 @Injectable()
 export class LogService {
   private readonly entries: LogEntry[] = [];
-  private readonly maxEntries = resolveMaxEntries();
+  private readonly maxEntries: number;
+
+  constructor(config: ConfigService) {
+    const size = config.get<number>('logBufferSize');
+    this.maxEntries = Number.isInteger(size) && (size as number) > 0 ? (size as number) : 1000;
+  }
 
   addEntry(entry: LogEntry): void {
     this.entries.push(entry);

@@ -63,6 +63,7 @@ en dur dans le code métier — les valeurs sont centralisées dans
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
 | `PORT` | Port HTTP | `3000` |
+| `TRUST_PROXY` | Autorise la lecture de `X-Forwarded-For` (IP client réelle dans les logs) derrière un reverse proxy | `false` |
 | `MONGO_HOST` | Hôte MongoDB | `localhost` |
 | `MONGO_PORT` | Port MongoDB | `27017` |
 | `MONGO_DB` | Nom de la base | — (requis) |

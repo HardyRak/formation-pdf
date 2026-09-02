@@ -85,16 +85,14 @@ type LogServiceEntry = {
   user: LogUser | null;
 };
 
-/** Extrait l'adresse IP du client (en-tête `x-forwarded-for` puis socket). */
+/**
+ * Adresse IP du client, résolue par Express : `req.ip` reflète
+ * `X-Forwarded-For` UNIQUEMENT si `trust proxy` est activé (voir main.ts),
+ * sinon l'adresse de la socket. Les en-têtes fournis par le client ne sont
+ * donc jamais exploités tels quels.
+ */
 function clientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    return String(forwarded[0]).trim();
-  }
-  return req.socket?.remoteAddress ?? 'inconnue';
+  return req.ip ?? req.socket?.remoteAddress ?? 'inconnue';
 }
 
 /** Convertit une valeur d'en-tête (string | string[] | undefined) en chaîne. */
