@@ -7,6 +7,7 @@ import {
   ComboBox,
   ColorPicker,
   Field,
+  FieldError,
   FormGrid,
   IconPicker,
   Modal,
@@ -182,23 +183,5 @@ export function FormationForm({
         </div>
       </form>
     </Modal>
-  );
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p
-      role="alert"
-      style={{
-        margin: '6px 0 0',
-        fontSize: '12.5px',
-        fontWeight: 600,
-        color: 'var(--danger)',
-        lineHeight: 1.3,
-      }}
-    >
-      {message}
-    </p>
   );
 }

@@ -10,6 +10,7 @@ export { ComboBox } from './ComboBox';
 export { ConfirmButton } from './ConfirmButton';
 export { Empty } from './Empty';
 export { Field } from './Field';
+export { FieldError } from './FieldError';
 export { FileField } from './FileField';
 export { FilePickerButton } from './FilePickerButton';
 export { FormCard } from './FormCard';

@@ -1,22 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  Badge,
-  Button,
-  ConfirmButton,
-  Empty,
-  Field,
-  FormCard,
-  FormGrid,
-  ListRow,
-  PageHeader,
-  QueryGate,
-  TextArea,
-  TextField,
-} from '@/shared/components';
+import { Badge, Button, ConfirmButton, Empty, ListRow, PageHeader, QueryGate } from '@/shared/components';
 import type { LevelDto } from '@/shared/types/api';
 import { useFormations } from '../hooks/useFormations';
 import { useLevels } from '../hooks/useLevels';
+import { LevelForm } from '../components/LevelForm';
 import { styles } from './LevelsPage.styles';
 
 export function LevelsPage() {
@@ -27,39 +15,34 @@ export function LevelsPage() {
   const { levels, isLoading, isError, error, refetch, createMutation, updateMutation, deleteMutation } =
     useLevels(formationId);
 
-  const [editing, setEditing] = useState<Partial<LevelDto> | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  // null = fermé ; 'new' = création ; { …level } = édition.
+  const [editing, setEditing] = useState<LevelDto | 'new' | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const formationName = formations.find((f) => f.id === formationId)?.name ?? 'Formation';
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
-  const handleStartNew = () => {
-    setEditing({ name: '', description: '' });
-    setIsNew(true);
+  const openNew = () => {
+    setEditing('new');
     setFormError(null);
   };
-
-  const handleStartEdit = (level: LevelDto) => {
-    setEditing({ ...level });
-    setIsNew(false);
+  const openEdit = (level: LevelDto) => {
+    setEditing(level);
     setFormError(null);
   };
-
-  const handleCancel = () => {
+  const close = () => {
     setEditing(null);
     setFormError(null);
   };
 
-  const handleSubmit = () => {
-    if (!editing) return;
+  const handleSubmit = (values: { name: string; order?: number; description: string }) => {
     const options = {
-      onSuccess: () => handleCancel(),
+      onSuccess: () => close(),
       onError: (e: unknown) =>
         setFormError((e as { message?: string }).message ?? "Erreur lors de l'enregistrement."),
     };
-    if (isNew) createMutation.mutate(editing, options);
-    else if (editing.id) updateMutation.mutate({ id: editing.id, body: editing }, options);
+    if (editing === 'new') createMutation.mutate(values, options);
+    else if (editing) updateMutation.mutate({ id: editing.id, body: values }, options);
   };
 
   const handleDelete = (id: string) => deleteMutation.mutate(id);
@@ -77,43 +60,18 @@ export function LevelsPage() {
           title={`${formationName} — Niveaux`}
           onBack={() => navigate('/formations')}
           backLabel="← Retour aux formations"
-          action={<Button onClick={handleStartNew}>+ Nouveau niveau</Button>}
+          action={<Button onClick={openNew}>+ Nouveau niveau</Button>}
         />
 
         {editing ? (
-          <FormCard
-            title={isNew ? 'Nouveau niveau' : 'Éditer le niveau'}
-            error={formError}
+          <LevelForm
+            key={editing === 'new' ? 'new' : editing.id}
+            initial={editing === 'new' ? undefined : editing}
             submitting={isSaving}
-            submitLabel={isNew ? 'Créer' : 'Enregistrer'}
+            error={formError}
             onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          >
-            <FormGrid>
-              <Field label="Nom">
-                <TextField
-                  value={editing.name ?? ''}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Ordre">
-                <TextField
-                  type="number"
-                  value={editing.order ?? ''}
-                  onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) })}
-                />
-              </Field>
-            </FormGrid>
-            <div style={styles.descField}>
-              <Field label="Description">
-                <TextArea
-                  rows={3}
-                  value={editing.description ?? ''}
-                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                />
-              </Field>
-            </div>
-          </FormCard>
+            onClose={close}
+          />
         ) : null}
 
         {levels.length === 0 ? (
@@ -138,7 +96,7 @@ export function LevelsPage() {
                     <Button variant="secondary" onClick={() => navigate(`/levels/${level.id}/documents`)}>
                       Documents
                     </Button>
-                    <Button variant="ghost" onClick={() => handleStartEdit(level)}>
+                    <Button variant="ghost" onClick={() => openEdit(level)}>
                       Éditer
                     </Button>
                     <ConfirmButton
