@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useSessionStore } from '@/features/auth/session.store';
 import { RequireManager } from '@/features/auth/components/RequireManager';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
@@ -17,6 +19,14 @@ const queryClient = new QueryClient({
 });
 
 export function App() {
+  const bootstrap = useSessionStore((s) => s.bootstrap);
+
+  // Au démarrage, restaure la session si elle existe : sans cet appel,
+  // RequireManager reste bloqué sur « Chargement… » (régression ec30199).
+  useEffect(() => {
+    void bootstrap();
+  }, [bootstrap]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
