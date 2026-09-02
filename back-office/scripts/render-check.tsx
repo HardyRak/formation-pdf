@@ -19,7 +19,7 @@ const stats = {
     { formationId: 'f-cyb', documents: 4 },
   ],
 };
-const formations = [{ id: 'f-hse', name: 'HSE & Sécurité' }];
+const formations = [{ _id: 'f-hse', id: 'f-hse', name: 'HSE & Sécurité' }];
 
 // Grant « pré-migration » : ni levelIds ni documentIds (comme en base ancienne).
 const legacyGrant = { _id: 'usr-1:f-hse', userId: 'usr-1', formationId: 'f-hse' };
@@ -43,6 +43,7 @@ function makeClient(seed: 'none' | 'dashboard' | 'access' | 'formations') {
   if (seed === 'formations') {
     qc.setQueryData(['formations'], [
       {
+        _id: 'f-ang',
         id: 'f-ang',
         name: 'Angular & Ionic',
         category: 'Développement',
