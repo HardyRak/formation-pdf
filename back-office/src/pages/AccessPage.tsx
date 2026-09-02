@@ -95,7 +95,7 @@ export function AccessPage() {
           <FormGrid min={200}>
             <Field label="Utilisateur">
               <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
-                <option value="">— Choisir un apprenant —</option>
+                <option value="" key="placeholder">— Choisir un apprenant —</option>
                 {(users.data?.items ?? []).map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.firstName} {u.lastName} ({u.email})
@@ -112,7 +112,7 @@ export function AccessPage() {
                   setDocumentId('');
                 }}
               >
-                <option value="">— Choisir —</option>
+                <option value="" key="placeholder">— Choisir —</option>
                 {(formations.data ?? []).map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
@@ -129,7 +129,7 @@ export function AccessPage() {
                 }}
                 disabled={!formationId}
               >
-                <option value="">Tous les niveaux</option>
+                <option value="" key="all">Tous les niveaux</option>
                 {(levels.data ?? []).map((l) => (
                   <option key={l.id} value={l.id}>
                     Niveau {l.order} — {l.name}
@@ -139,7 +139,7 @@ export function AccessPage() {
             </Field>
             <Field label="Document (optionnel)">
               <Select value={documentId} onChange={(e) => setDocumentId(e.target.value)} disabled={!levelId}>
-                <option value="">Tous les documents</option>
+                <option value="" key="all">Tous les documents</option>
                 {(documents.data ?? []).map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.title}
@@ -156,8 +156,11 @@ export function AccessPage() {
         ) : (
           <div style={styles.list}>
             {grantItems.map((g) => {
-              const hasFullLevels = g.levelIds.length === 0;
-              const hasFullDocs = g.documentIds.length === 0;
+              // Grants anciens (pré-migration) : champs tableau potentiellement absents.
+              const levelIds = g.levelIds ?? [];
+              const documentIds = g.documentIds ?? [];
+              const hasFullLevels = levelIds.length === 0;
+              const hasFullDocs = documentIds.length === 0;
               return (
                 <ListRow
                   key={g._id}
@@ -168,19 +171,19 @@ export function AccessPage() {
                       {hasFullLevels ? (
                         <Badge color="var(--accent)">Tous les niveaux</Badge>
                       ) : (
-                        <Badge color="var(--primary)">Niveaux : {g.levelIds.length}</Badge>
+                        <Badge color="var(--primary)">Niveaux : {levelIds.length}</Badge>
                       )}
                       {hasFullDocs ? (
                         <Badge>Tous les documents</Badge>
                       ) : (
-                        <Badge color="var(--warning)">Documents : {g.documentIds.length}</Badge>
+                        <Badge color="var(--warning)">Documents : {documentIds.length}</Badge>
                       )}
                     </>
                   }
                   actions={
                     <>
                       {!hasFullDocs
-                        ? g.documentIds.map((d) => (
+                        ? documentIds.map((d) => (
                             <ConfirmButton
                               key={d}
                               variant="ghost"

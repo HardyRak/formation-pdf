@@ -16,6 +16,19 @@ export interface AccessibleDocument {
 type AnyDoc = Record<string, unknown> & { _id: string };
 
 /**
+ * Complète un grant « lean » ancien auquel il manquerait les champs tableau
+ * (`levelIds` / `documentIds`) : les `default: []` du schéma ne s'appliquent
+ * qu'à la création, pas aux documents déjà en base (pré-migration).
+ */
+function withDefaults(grant: AnyDoc): AnyDoc {
+  return {
+    ...grant,
+    levelIds: (grant.levelIds as string[] | undefined) ?? [],
+    documentIds: (grant.documentIds as string[] | undefined) ?? [],
+  };
+}
+
+/**
  * Contrôle d'accès serveur (source de vérité).
  *
  * Politique :
@@ -75,11 +88,11 @@ export class AccessService {
     if (user.role === 'MANAGER') {
       return { role: 'MANAGER', formations: ['*'], levels: { '*': ['*'] } };
     }
-    const grants = await this.grants.find({ userId: user.id }).lean();
-    const formations = grants.map((g) => g.formationId);
+    const grants = (await this.grants.find({ userId: user.id }).lean()) as AnyDoc[];
+    const formations = grants.map((g) => String(g.formationId));
     const levels: Record<string, string[]> = {};
     for (const grant of grants) {
-      levels[grant.formationId] = grant.levelIds;
+      levels[String(grant.formationId)] = withDefaults(grant).levelIds as string[];
     }
     return { role: user.role, formations, levels };
   }
@@ -89,7 +102,8 @@ export class AccessService {
   /** Liste des grants (admin). */
   async listGrants(userId?: string): Promise<AnyDoc[]> {
     const filter = userId ? { userId } : {};
-    return this.grants.find(filter).sort({ formationId: 1 }).lean();
+    const rows = (await this.grants.find(filter).sort({ formationId: 1 }).lean()) as AnyDoc[];
+    return rows.map(withDefaults);
   }
 
   /**
@@ -191,13 +205,19 @@ export class AccessService {
     userId: string,
     formationId: string,
   ): Promise<(AccessGrant & { _id: string }) | null> {
-    return this.grants.findById(`${userId}:${formationId}`).lean();
+    const row = (await this.grants
+      .findById(`${userId}:${formationId}`)
+      .lean()) as AnyDoc | null;
+    return row ? (withDefaults(row) as unknown as AccessGrant & { _id: string }) : null;
   }
 
   private async findOneDocument(
     userId: string,
     documentId: string,
   ): Promise<AnyDoc | null> {
-    return this.grants.findOne({ userId, documentIds: documentId }).lean();
+    const row = (await this.grants
+      .findOne({ userId, documentIds: documentId })
+      .lean()) as AnyDoc | null;
+    return row ? withDefaults(row) : null;
   }
 }
