@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Empty, PageHeader, QueryGate } from '@/shared/components';
 import type { FormationDto } from '@/shared/types/api';
 import { useFormations } from '../hooks/useFormations';
+import { useCategories } from '../hooks/useCategories';
 import { FormationCard } from '../components/FormationCard';
 import { FormationForm, type FormationFormValues } from '../components/FormationForm';
 import { styles } from './FormationsPage.styles';
@@ -11,21 +12,14 @@ export function FormationsPage() {
   const navigate = useNavigate();
   const { formations, isLoading, isError, error, refetch, createMutation, updateMutation, deleteMutation } =
     useFormations();
+  // Catégories depuis le référentiel backend (création à la volée côté serveur).
+  const { categoryNames } = useCategories();
 
   // null = fermé ; 'new' = création ; { …formation } = édition.
   const [editing, setEditing] = useState<FormationDto | 'new' | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
-
-  // Catégories existantes déduites du catalogue (pour la ComboBox).
-  const categories = useMemo(
-    () =>
-      Array.from(new Set(formations.map((f) => f.category).filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b),
-      ),
-    [formations],
-  );
 
   const openNew = () => {
     setEditing('new');
@@ -79,7 +73,7 @@ export function FormationsPage() {
           <FormationForm
             key={editing === 'new' ? 'new' : editing.id}
             initial={editing === 'new' ? undefined : editing}
-            categories={categories}
+            categories={categoryNames}
             submitting={isSaving}
             error={formError}
             onSubmit={handleSubmit}

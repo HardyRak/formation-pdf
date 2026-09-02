@@ -21,12 +21,14 @@ import { AdminService } from './admin.service';
 import { pdfMulterStorage } from './uploads';
 import { ApiException } from '../common/api-exception';
 import {
+  CreateCategoryDto,
   CreateDocumentDto,
   CreateFormationDto,
   CreateLevelDto,
   CreateUserDto,
   GrantAccessDto,
   SetActiveDto,
+  UpdateCategoryDto,
   UpdateDocumentDto,
   UpdateFormationDto,
   UpdateLevelDto,
@@ -101,6 +103,28 @@ export class AdminController {
     @Param('documentId') documentId: string,
   ) {
     return this.admin.revokeDocument(userId, documentId);
+  }
+
+  // ---- Catégories ----------------------------------------------------------------
+
+  @Get('categories')
+  listCategories() {
+    return this.admin.listCategories();
+  }
+
+  @Post('categories')
+  createCategory(@Body() dto: CreateCategoryDto) {
+    return this.admin.createCategory(dto);
+  }
+
+  @Patch('categories/:id')
+  renameCategory(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    return this.admin.renameCategory(id, dto);
+  }
+
+  @Delete('categories/:id')
+  deleteCategory(@Param('id') id: string) {
+    return this.admin.deleteCategory(id);
   }
 
   // ---- Formations --------------------------------------------------------------

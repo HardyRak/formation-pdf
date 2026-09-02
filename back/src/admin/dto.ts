@@ -252,3 +252,25 @@ export class UpdateDocumentDto {
   @Min(0)
   order?: number;
 }
+
+/** Création d'une catégorie de formation (admin). */
+export class CreateCategoryDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name!: string;
+}
+
+/** Mise à jour / renommage d'une catégorie (admin). */
+export class UpdateCategoryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  order?: number;
+}

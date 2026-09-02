@@ -10,6 +10,7 @@ export function useFormations() {
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['formations'] });
+    void queryClient.invalidateQueries({ queryKey: ['categories'] });
     void queryClient.invalidateQueries({ queryKey: ['stats'] });
   };
 
