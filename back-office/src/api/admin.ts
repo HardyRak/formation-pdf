@@ -13,6 +13,19 @@ import type {
   UserDto,
 } from './types';
 
+/**
+ * Backend ancien (pré-fix) : les documents lean arrivaient avec `_id` mais
+ * sans `id`. Normalisation côté client pour que le back-office reste
+ * fonctionnel quel que soit l'état du backend déployé.
+ */
+type RawDoc = Record<string, unknown> & { id?: string; _id?: string };
+
+function withId<T>(raw: RawDoc): T {
+  return { ...raw, id: raw.id ?? raw._id ?? '' } as T;
+}
+
+const withIds = <T>(rows: RawDoc[]): T[] => rows.map((r) => withId<T>(r));
+
 // ---- Statistiques -------------------------------------------------------
 
 export const getStats = () => api.get<StatsDto>('/admin/stats');
@@ -56,7 +69,8 @@ export const revokeDocument = (userId: string, documentId: string) =>
 
 // ---- Formations ---------------------------------------------------------
 
-export const listFormations = () => api.get<FormationDto[]>('/admin/formations');
+export const listFormations = async (): Promise<FormationDto[]> =>
+  withIds<FormationDto>(await api.get<RawDoc[]>('/admin/formations'));
 
 export const createFormation = (body: Partial<FormationDto>) =>
   api.post<FormationDto>('/admin/formations', body);
@@ -69,8 +83,8 @@ export const deleteFormation = (id: string) =>
 
 // ---- Niveaux ------------------------------------------------------------
 
-export const listLevels = (formationId: string) =>
-  api.get<LevelDto[]>(`/admin/formations/${formationId}/levels`);
+export const listLevels = async (formationId: string): Promise<LevelDto[]> =>
+  withIds<LevelDto>(await api.get<RawDoc[]>(`/admin/formations/${formationId}/levels`));
 
 export const createLevel = (formationId: string, body: Partial<LevelDto>) =>
   api.post<LevelDto>(`/admin/formations/${formationId}/levels`, body);
@@ -83,11 +97,11 @@ export const deleteLevel = (id: string) =>
 
 // ---- Documents + PDF ----------------------------------------------------
 
-export const listDocuments = (levelId: string) =>
-  api.get<TrainingDocumentDto[]>(`/admin/levels/${levelId}/documents`);
+export const listDocuments = async (levelId: string): Promise<TrainingDocumentDto[]> =>
+  withIds<TrainingDocumentDto>(await api.get<RawDoc[]>(`/admin/levels/${levelId}/documents`));
 
-export const getDocument = (id: string) =>
-  api.get<TrainingDocumentDto>(`/admin/documents/${id}`);
+export const getDocument = async (id: string): Promise<TrainingDocumentDto> =>
+  withId<TrainingDocumentDto>(await api.get<RawDoc>(`/admin/documents/${id}`));
 
 export const createDocument = (levelId: string, body: { title: string; description?: string }, file: File) => {
   const form = new FormData();

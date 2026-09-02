@@ -135,4 +135,28 @@ console.error = originalError;
 // 6) Aucun warning React « unique key » sur les rendus des pages.
 check('aucun warning « unique key » sur les pages', warningsBefore === 0);
 
-process.exit(failed ? 1 : 0);
+// 7) Backend ancien (réponses lean SANS `id`) : la couche API client
+// normalise `_id` → `id` (régression du warning « unique key »).
+async function apiNormalization(): Promise<void> {
+  (globalThis as unknown as { fetch: typeof fetch }).fetch = ((input: RequestInfo | URL) => {
+    const url = String(input);
+    const body = url.includes('/documents')
+      ? [{ _id: 'doc-old', title: 'Doc ancien' }]
+      : url.includes('/levels')
+        ? [{ _id: 'l-old', name: 'Niveau ancien' }]
+        : [{ _id: 'f-old', name: 'Formation ancienne' }];
+    return Promise.resolve(
+      new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+  }) as typeof fetch;
+
+  const { listFormations, listLevels, listDocuments } = await import('../src/api/admin');
+  const f = await listFormations();
+  check('api → listFormations normalise _id en id (back ancien)', f[0]?.id === 'f-old');
+  const l = await listLevels('f-old');
+  check('api → listLevels normalise _id en id (back ancien)', l[0]?.id === 'l-old');
+  const d = await listDocuments('l-old');
+  check('api → listDocuments normalise _id en id (back ancien)', d[0]?.id === 'doc-old');
+}
+
+void apiNormalization().then(() => process.exit(failed ? 1 : 0));
