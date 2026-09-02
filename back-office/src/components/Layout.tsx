@@ -1,5 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useSessionStore } from '../auth/session.store';
+import { styles } from './Layout.styles';
+import { Brand } from './Brand';
+import { Avatar } from './Avatar';
+import { Button } from './Button';
 
 const NAV = [
   { to: '/', label: 'Tableau de bord', icon: '📊', end: true },
@@ -18,45 +22,13 @@ export function Layout() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Barre latérale */}
-      <aside
-        style={{
-          width: 'var(--sidebar-width)',
-          background: 'var(--bg-elevated)',
-          borderRight: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-        }}
-      >
-        <div style={{ padding: '22px 18px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
-                background: 'var(--primary)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-              }}
-            >
-              📄
-            </div>
-            <div>
-              <div style={{ fontWeight: '800', fontSize: '15px' }}>PDF Formation</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: '700' }}>BACK-OFFICE</div>
-            </div>
-          </div>
+    <div style={styles.shell}>
+      <aside style={styles.sidebar}>
+        <div style={styles.brand}>
+          <Brand />
         </div>
 
-        <nav style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+        <nav style={styles.nav}>
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -68,7 +40,7 @@ export function Layout() {
                 gap: '10px',
                 padding: '10px 12px',
                 borderRadius: '12px',
-                fontWeight: '700',
+                fontWeight: 700,
                 fontSize: '14px',
                 color: isActive ? 'var(--primary)' : 'var(--text-muted)',
                 background: isActive ? 'var(--primary-soft)' : 'transparent',
@@ -80,52 +52,23 @@ export function Layout() {
           ))}
         </nav>
 
-        <div style={{ padding: '16px 12px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '12px',
-                background: user?.avatarColor ?? 'var(--primary)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '800',
-                fontSize: '14px',
-              }}
-            >
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: '800', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={styles.footer}>
+          <div style={styles.userRow}>
+            <Avatar firstName={user?.firstName} lastName={user?.lastName} color={user?.avatarColor} />
+            <div style={styles.userInfo}>
+              <div style={styles.userName}>
                 {user?.firstName} {user?.lastName}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.email}
-              </div>
+              <div style={styles.userEmail}>{user?.email}</div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'rgba(220,38,38,0.08)',
-              color: 'var(--danger)',
-              fontWeight: '700',
-            }}
-          >
+          <Button variant="dangerSoft" onClick={() => void handleLogout()} style={{ width: '100%' }}>
             Se déconnecter
-          </button>
+          </Button>
         </div>
       </aside>
 
-      {/* Contenu */}
-      <main style={{ flex: 1, padding: '28px 32px', overflow: 'auto' }}>
+      <main style={styles.content}>
         <Outlet />
       </main>
     </div>

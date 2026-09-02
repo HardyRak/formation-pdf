@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '../auth/session.store';
-import { Button, TextField, Field, ErrorBox } from '../components/ui';
+import { Alert, Brand, Button, Card, Field, TextField } from '../components';
+import { styles } from './LoginPage.styles';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -32,87 +33,58 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <form
-        onSubmit={submit}
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '32px',
-          boxShadow: '0 10px 30px rgba(11,16,48,0.08)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <div
-            style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '14px',
-              background: 'var(--primary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '22px',
-            }}
-          >
-            📄
+    <div style={styles.wrapper}>
+      <form onSubmit={submit}>
+        <Card style={styles.card}>
+          <div style={styles.brand}>
+            <Brand size="lg" />
           </div>
-          <div>
-            <div style={{ fontWeight: '800', fontSize: '18px' }}>PDF Formation</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-faint)', fontWeight: '700' }}>Back-office</div>
+
+          <h1 style={styles.heading}>Espace d'administration</h1>
+          <p style={styles.intro}>
+            Identifiez-vous avec un compte <strong>responsable de formation</strong>.
+          </p>
+
+          {notice ? (
+            <div style={styles.notice}>
+              <Alert tone="warning">{notice}</Alert>
+            </div>
+          ) : null}
+
+          <div style={styles.fields}>
+            <Field label="Email">
+              <TextField
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="prenom.nom@entreprise.fr"
+                autoComplete="email"
+                autoFocus
+              />
+            </Field>
+            <Field label="Mot de passe">
+              <TextField
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </Field>
           </div>
-        </div>
 
-        <h1 style={{ fontSize: '20px', margin: '4px 0 4px' }}>Espace d'administration</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '0 0 24px' }}>
-          Identifiez-vous avec un compte <strong>responsable de formation</strong>.
-        </p>
+          {clientError || error ? (
+            <div style={styles.alertWrap}>
+              <Alert message={clientError ?? error?.message} />
+            </div>
+          ) : null}
 
-        {notice ? (
-          <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '12px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', color: 'var(--warning)' }}>
-            {notice}
-          </div>
-        ) : null}
+          <Button type="submit" loading={loading} style={styles.submit}>
+            Se connecter
+          </Button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <Field label="Email">
-            <TextField
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="prenom.nom@entreprise.fr"
-              autoComplete="email"
-              autoFocus
-            />
-          </Field>
-          <Field label="Mot de passe">
-            <TextField
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
-          </Field>
-        </div>
-
-        {clientError || error ? (
-          <div style={{ marginTop: '16px' }}>
-            <ErrorBox message={clientError ?? error?.message} />
-          </div>
-        ) : null}
-
-        <Button type="submit" variant="primary" loading={loading} style={{ width: '100%', marginTop: '20px', justifyContent: 'center' }}>
-          Se connecter
-        </Button>
-
-        <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-faint)', textAlign: 'center' }}>
-          Connexion sécurisée • jeton JWT
-        </p>
+          <p style={styles.footer}>Connexion sécurisée • jeton JWT</p>
+        </Card>
       </form>
     </div>
   );

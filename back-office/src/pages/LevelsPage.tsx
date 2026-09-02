@@ -3,7 +3,21 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listLevels, createLevel, updateLevel, deleteLevel, listFormations } from '../api/admin';
 import type { LevelDto } from '../api/types';
-import { Card, Badge, Button, Field, TextField, TextArea, Loading, Empty, ErrorBox } from '../components/ui';
+import {
+  Badge,
+  Button,
+  ConfirmButton,
+  Empty,
+  Field,
+  FormCard,
+  FormGrid,
+  ListRow,
+  PageHeader,
+  QueryGate,
+  TextArea,
+  TextField,
+} from '../components';
+import { styles } from './LevelsPage.styles';
 
 export function LevelsPage() {
   const { formationId = '' } = useParams();
@@ -33,83 +47,121 @@ export function LevelsPage() {
       setIsNew(false);
       setFormError(null);
     },
-    onError: (e) => setFormError((e as { message?: string }).message ?? 'Erreur lors de l\'enregistrement.'),
+    onError: (e) => setFormError((e as { message?: string }).message ?? "Erreur lors de l'enregistrement."),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteLevel(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['levels', formationId] });
-      void qc.invalidateQueries({ queryKey: ['forms'] });
+      void qc.invalidateQueries({ queryKey: ['formations'] });
     },
   });
 
-  if (levels.isLoading) return <Loading label="Chargement des niveaux…" />;
-  if (levels.isError) return <ErrorBox message={levels.error?.message} onRetry={() => levels.refetch()} />;
+  const startNew = () => {
+    setEditing({ name: '', description: '' });
+    setIsNew(true);
+    setFormError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setFormError(null);
+  };
+
   const items = levels.data ?? [];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <button onClick={() => navigate('/formations')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', fontSize: '13px', padding: 0, marginBottom: '6px' }}>
-            ← Retour aux formations
-          </button>
-          <h1 style={{ margin: 0 }}>{formationName} — Niveaux</h1>
-        </div>
-        <Button onClick={() => { setEditing({ name: '', description: '' }); setIsNew(true); setFormError(null); }}>+ Nouveau niveau</Button>
+    <QueryGate
+      isLoading={levels.isLoading}
+      isError={levels.isError}
+      errorMessage={levels.error?.message}
+      onRetry={() => void levels.refetch()}
+      loadingLabel="Chargement des niveaux…"
+    >
+      <div>
+        <PageHeader
+          title={`${formationName} — Niveaux`}
+          onBack={() => navigate('/formations')}
+          backLabel="← Retour aux formations"
+          action={<Button onClick={startNew}>+ Nouveau niveau</Button>}
+        />
+
+        {editing ? (
+          <FormCard
+            title={isNew ? 'Nouveau niveau' : 'Éditer le niveau'}
+            error={formError}
+            submitting={saveMutation.isPending}
+            submitLabel={isNew ? 'Créer' : 'Enregistrer'}
+            onSubmit={() => saveMutation.mutate()}
+            onCancel={cancelEdit}
+          >
+            <FormGrid>
+              <Field label="Nom">
+                <TextField value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+              </Field>
+              <Field label="Ordre">
+                <TextField
+                  type="number"
+                  value={editing.order ?? ''}
+                  onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) })}
+                />
+              </Field>
+            </FormGrid>
+            <div style={styles.descField}>
+              <Field label="Description">
+                <TextArea rows={3} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+              </Field>
+            </div>
+          </FormCard>
+        ) : null}
+
+        {items.length === 0 ? (
+          <Empty label="Aucun niveau dans cette formation." />
+        ) : (
+          <div style={styles.list}>
+            {items.map((l) => (
+              <ListRow
+                key={l.id}
+                tile={l.order}
+                tileStyle={styles.tile}
+                title={l.name}
+                subtitle={l.description}
+                badges={
+                  <>
+                    <Badge>{l.documentsCount} docs</Badge>
+                    <Badge color="var(--accent)">{l.totalPages} pages</Badge>
+                  </>
+                }
+                actions={
+                  <>
+                    <Button variant="secondary" onClick={() => navigate(`/levels/${l.id}/documents`)}>
+                      Documents
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setEditing({ ...l });
+                        setIsNew(false);
+                        setFormError(null);
+                      }}
+                    >
+                      Éditer
+                    </Button>
+                    <ConfirmButton
+                      variant="danger"
+                      confirmMessage={`Supprimer le niveau « ${l.name} » ?`}
+                      onClick={() => deleteMutation.mutate(l.id)}
+                    >
+                      Supprimer
+                    </ConfirmButton>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {editing ? (
-        <Card style={{ marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 16px' }}>{isNew ? 'Nouveau niveau' : 'Éditer le niveau'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-            <Field label="Nom">
-              <TextField value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-            </Field>
-            <Field label="Ordre">
-              <TextField type="number" value={editing.order ?? ''} onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) })} />
-            </Field>
-          </div>
-          <div style={{ marginTop: '14px' }}>
-            <Field label="Description">
-              <TextArea rows={3} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
-            </Field>
-          </div>
-          {formError ? <div style={{ marginTop: '12px' }}><ErrorBox message={formError} /></div> : null}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-            <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending}>{isNew ? 'Créer' : 'Enregistrer'}</Button>
-            <Button variant="ghost" onClick={() => { setEditing(null); setFormError(null); }}>Annuler</Button>
-          </div>
-        </Card>
-      ) : null}
-
-      {items.length === 0 ? (
-        <Empty label="Aucun niveau dans cette formation." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {items.map((l) => (
-            <Card key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '16px' }}>
-                {l.order}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: '800', fontSize: '15px' }}>{l.name}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.description}</div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '12px', fontWeight: '700', color: 'var(--text-faint)' }}>
-                  <Badge>{l.documentsCount} docs</Badge>
-                  <Badge color="var(--accent)">{l.totalPages} pages</Badge>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="secondary" onClick={() => navigate(`/levels/${l.id}/documents`)}>Documents</Button>
-                <Button variant="ghost" onClick={() => { setEditing({ ...l }); setIsNew(false); setFormError(null); }}>Éditer</Button>
-                <Button variant="danger" onClick={() => { if (confirm(`Supprimer le niveau « ${l.name} » ?`)) deleteMutation.mutate(l.id); }}>Supprimer</Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+    </QueryGate>
   );
 }

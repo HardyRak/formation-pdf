@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listGrants, grantAccess, revokeGrant, revokeDocument, listUsers, listFormations, listLevels, listDocuments } from '../api/admin';
-import { Card, Badge, Button, Field, Select, Loading, Empty, ErrorBox } from '../components/ui';
+import {
+  Badge,
+  ConfirmButton,
+  Empty,
+  Field,
+  FormCard,
+  FormGrid,
+  ListRow,
+  PageHeader,
+  QueryGate,
+  Select,
+} from '../components';
+import { styles } from './AccessPage.styles';
 
 export function AccessPage() {
   const qc = useQueryClient();
@@ -43,7 +55,7 @@ export function AccessPage() {
       setDocumentId('');
       setFormError(null);
     },
-    onError: (e) => setFormError((e as { message?: string }).message ?? 'Erreur lors de l\'attribution.'),
+    onError: (e) => setFormError((e as { message?: string }).message ?? "Erreur lors de l'attribution."),
   });
 
   const revokeGrantMutation = useMutation({
@@ -56,103 +68,144 @@ export function AccessPage() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['grants'] }),
   });
 
-  if (grants.isLoading) return <Loading label="Chargement des accès…" />;
-  if (grants.isError) return <ErrorBox message={grants.error?.message} onRetry={() => grants.refetch()} />;
-
   const grantItems = grants.data ?? [];
 
   return (
-    <div>
-      <h1 style={{ margin: '0 0 20px' }}>Gestion des accès</h1>
+    <QueryGate
+      isLoading={grants.isLoading}
+      isError={grants.isError}
+      errorMessage={grants.error?.message}
+      onRetry={() => void grants.refetch()}
+      loadingLabel="Chargement des accès…"
+    >
+      <div>
+        <PageHeader title="Gestion des accès" />
 
-      <Card style={{ marginBottom: '24px' }}>
-        <h3 style={{ margin: '0 0 6px' }}>Donner l'accès à un document</h3>
-        <p style={{ margin: '0 0 14px', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Accorder un document ouvre aussi son <strong>niveau</strong> et sa <strong>formation</strong> pour l'apprenant (cascade).
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <Field label="Utilisateur">
-            <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
-              <option value="">— Choisir un apprenant —</option>
-              {(users.data?.items ?? []).map((u) => (
-                <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Formation">
-            <Select value={formationId} onChange={(e) => { setFormationId(e.target.value); setLevelId(''); setDocumentId(''); }}>
-              <option value="">— Choisir —</option>
-              {(formations.data ?? []).map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Niveau (optionnel)">
-            <Select value={levelId} onChange={(e) => { setLevelId(e.target.value); setDocumentId(''); }} disabled={!formationId}>
-              <option value="">Tous les niveaux</option>
-              {(levels.data ?? []).map((l) => (
-                <option key={l.id} value={l.id}>Niveau {l.order} — {l.name}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Document (optionnel)">
-            <Select value={documentId} onChange={(e) => setDocumentId(e.target.value)} disabled={!levelId}>
-              <option value="">Tous les documents</option>
-              {(documents.data ?? []).map((d) => (
-                <option key={d.id} value={d.id}>{d.title}</option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        {formError ? <div style={{ marginTop: '12px' }}><ErrorBox message={formError} /></div> : null}
-        <div style={{ marginTop: '16px' }}>
-          <Button onClick={() => grantMutation.mutate()} loading={grantMutation.isPending} disabled={!userId || !formationId}>
-            Donner l'accès
-          </Button>
-        </div>
-      </Card>
+        <FormCard
+          title="Donner l'accès à un document"
+          error={formError}
+          submitting={grantMutation.isPending}
+          submitLabel="Donner l'accès"
+          submitDisabled={!userId || !formationId}
+          onSubmit={() => grantMutation.mutate()}
+        >
+          <p style={styles.hint}>
+            Accorder un document ouvre aussi son <strong>niveau</strong> et sa <strong>formation</strong> pour l'apprenant (cascade).
+          </p>
+          <FormGrid min={200}>
+            <Field label="Utilisateur">
+              <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+                <option value="">— Choisir un apprenant —</option>
+                {(users.data?.items ?? []).map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName} ({u.email})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Formation">
+              <Select
+                value={formationId}
+                onChange={(e) => {
+                  setFormationId(e.target.value);
+                  setLevelId('');
+                  setDocumentId('');
+                }}
+              >
+                <option value="">— Choisir —</option>
+                {(formations.data ?? []).map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Niveau (optionnel)">
+              <Select
+                value={levelId}
+                onChange={(e) => {
+                  setLevelId(e.target.value);
+                  setDocumentId('');
+                }}
+                disabled={!formationId}
+              >
+                <option value="">Tous les niveaux</option>
+                {(levels.data ?? []).map((l) => (
+                  <option key={l.id} value={l.id}>
+                    Niveau {l.order} — {l.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Document (optionnel)">
+              <Select value={documentId} onChange={(e) => setDocumentId(e.target.value)} disabled={!levelId}>
+                <option value="">Tous les documents</option>
+                {(documents.data ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.title}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </FormGrid>
+        </FormCard>
 
-      <h3 style={{ margin: '0 0 12px' }}>Attributions existantes</h3>
-      {grantItems.length === 0 ? (
-        <Empty label="Aucune attribution d'accès." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {grantItems.map((g) => {
-            const hasFullLevels = g.levelIds.length === 0;
-            const hasFullDocs = g.documentIds.length === 0;
-            return (
-              <Card key={g._id}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                  <div>
-                    <div style={{ fontWeight: '800', fontSize: '15px' }}>{userNames[g.userId] ?? g.userId}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{formationNames[g.formationId] ?? g.formationId}</div>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                      {hasFullLevels
-                        ? <Badge color="var(--accent)">Tous les niveaux</Badge>
-                        : <Badge color="var(--primary)">Niveaux : {g.levelIds.length}</Badge>}
-                      {hasFullDocs
-                        ? <Badge>Tous les documents</Badge>
-                        : <Badge color="var(--warning)">Documents : {g.documentIds.length}</Badge>}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {!hasFullDocs ? (
-                      g.documentIds.map((d) => (
-                        <Button key={d} variant="ghost" onClick={() => { if (confirm('Retirer l\'accès à ce document ?')) revokeDocMutation.mutate({ u: g.userId, d }); }}>
-                          Retirer {d.slice(0, 12)}…
-                        </Button>
-                      ))
-                    ) : null}
-                    <Button variant="danger" onClick={() => { if (confirm('Révoquer tout l\'accès à cette formation ?')) revokeGrantMutation.mutate({ u: g.userId, f: g.formationId }); }}>
-                      Révoquer
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
+        <h3 style={styles.sectionTitle}>Attributions existantes</h3>
+        {grantItems.length === 0 ? (
+          <Empty label="Aucune attribution d'accès." />
+        ) : (
+          <div style={styles.list}>
+            {grantItems.map((g) => {
+              const hasFullLevels = g.levelIds.length === 0;
+              const hasFullDocs = g.documentIds.length === 0;
+              return (
+                <ListRow
+                  key={g._id}
+                  title={userNames[g.userId] ?? g.userId}
+                  subtitle={formationNames[g.formationId] ?? g.formationId}
+                  badges={
+                    <>
+                      {hasFullLevels ? (
+                        <Badge color="var(--accent)">Tous les niveaux</Badge>
+                      ) : (
+                        <Badge color="var(--primary)">Niveaux : {g.levelIds.length}</Badge>
+                      )}
+                      {hasFullDocs ? (
+                        <Badge>Tous les documents</Badge>
+                      ) : (
+                        <Badge color="var(--warning)">Documents : {g.documentIds.length}</Badge>
+                      )}
+                    </>
+                  }
+                  actions={
+                    <>
+                      {!hasFullDocs
+                        ? g.documentIds.map((d) => (
+                            <ConfirmButton
+                              key={d}
+                              variant="ghost"
+                              confirmMessage="Retirer l'accès à ce document ?"
+                              onClick={() => revokeDocMutation.mutate({ u: g.userId, d })}
+                            >
+                              Retirer {d.slice(0, 12)}…
+                            </ConfirmButton>
+                          ))
+                        : null}
+                      <ConfirmButton
+                        variant="danger"
+                        confirmMessage="Révoquer tout l'accès à cette formation ?"
+                        onClick={() => revokeGrantMutation.mutate({ u: g.userId, f: g.formationId })}
+                      >
+                        Révoquer
+                      </ConfirmButton>
+                    </>
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </QueryGate>
   );
 }
