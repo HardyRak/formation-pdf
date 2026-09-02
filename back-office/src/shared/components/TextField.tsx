@@ -1,6 +1,20 @@
 import type { InputHTMLAttributes } from 'react';
 import { styles } from './TextField.styles';
 
-export function TextField(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} style={{ ...styles.input, ...props.style }} />;
+/** Champ texte. `invalid` passe la bordure en rouge (erreur de validation). */
+export function TextField({
+  invalid,
+  style,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+  return (
+    <input
+      {...props}
+      style={{
+        ...styles.input,
+        ...(invalid ? { borderColor: 'var(--danger)' } : null),
+        ...style,
+      }}
+    />
+  );
 }

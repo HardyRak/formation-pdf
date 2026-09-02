@@ -1,21 +1,14 @@
-import { FORMATION_ICONS, DEFAULT_FORMATION_ICON } from '@/assets/icons';
+import { FormationGlyph } from '@/assets/icons/formations';
 import { styles } from './FormationIcon.styles';
 
 /**
- * Rend une icône de formation depuis son fichier SVG (mask CSS),
- * teintée avec la couleur de la formation. Nom inconnu → icône par défaut.
+ * Rendu d'une icône de formation (SVG inline « trait ») teintée par la couleur
+ * de la formation. Nom inconnu → icône par défaut (bibliothèque).
  */
-export function FormationIcon({ name, color }: { name?: string; color: string }) {
-  const url = (name && FORMATION_ICONS[name]) || DEFAULT_FORMATION_ICON;
+export function FormationIcon({ name, color, size = 20 }: { name?: string; color: string; size?: number }) {
   return (
-    <span
-      aria-hidden
-      style={{
-        ...styles.icon,
-        backgroundColor: color,
-        maskImage: `url(${url})`,
-        WebkitMaskImage: `url(${url})`,
-      }}
-    />
+    <span style={styles.wrap} aria-hidden>
+      <FormationGlyph name={name ?? 'library'} color={color} size={size} />
+    </span>
   );
 }
