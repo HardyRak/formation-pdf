@@ -26,4 +26,8 @@ export const envValidationSchema = Joi.object({
   // ---- Stockage des fichiers PDF (volume) ---------------------------
   UPLOAD_DIR: Joi.string().default('uploads'),
   MAX_UPLOAD_MB: Joi.number().min(1).max(500).default(50),
+
+  // ---- Proxy de confiance & journalisation --------------------------
+  TRUST_PROXY: Joi.boolean().default(false),
+  LOG_BUFFER_SIZE: Joi.number().integer().min(1).max(10000).default(1000),
 });

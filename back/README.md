@@ -63,6 +63,7 @@ en dur dans le code métier — les valeurs sont centralisées dans
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
 | `PORT` | Port HTTP | `3000` |
+| `TRUST_PROXY` | Autorise la lecture de `X-Forwarded-For` (IP client réelle dans les logs) derrière un reverse proxy | `false` |
 | `MONGO_HOST` | Hôte MongoDB | `localhost` |
 | `MONGO_PORT` | Port MongoDB | `27017` |
 | `MONGO_DB` | Nom de la base | — (requis) |
@@ -75,6 +76,7 @@ en dur dans le code métier — les valeurs sont centralisées dans
 | `CORS_ORIGINS` | Origines autorisées (virgules) | dev local |
 | `UPLOAD_DIR` | Dossier de stockage des PDF (volume) | `uploads` |
 | `MAX_UPLOAD_MB` | Taille max d'un upload PDF (Mo) | `50` |
+| `LOG_BUFFER_SIZE` | Nombre de requêtes conservées dans le tampon des logs (`/logs`) | `1000` |
 
 > L'URI MongoDB n'est **pas** définie directement : elle est construite à partir
 > des variables ci-dessus (`mongodb://[user:password@]host:port/db[?authSource=…]`)
@@ -102,6 +104,7 @@ Aligné sur le contrat déjà consommé par le mobile (`mobile/src/core/api/`).
 | `/progression/documents/:id` | DELETE | ✅ | Efface la progression d'un document |
 | `/progression` | DELETE | ✅ | Efface toute la progression de l'utilisateur |
 | `/health` | GET | ❌ | Healthcheck |
+| `/logs` | GET | ✅ + **MANAGER** | Journaux des requêtes HTTP (masqués) |
 | `/admin/*` | variés | ✅ + **MANAGER** | Administration du back-office (voir §Admin) |
 
 ### Routes admin (`/v1/admin/*`) — réservées au rôle `MANAGER`
@@ -159,6 +162,7 @@ rester compatibles avec le client mobile.
 - **PDF sur volume** : les `.pdf` importés sont écrits dans `UPLOAD_DIR` et ne sont servis QUE par `/documents/:id/stream` (jamais d'URL publique).
 - **Anti-cache** sur `/stream` (`Cache-Control: no-store`).
 - **Rate-limiting** global + renforcé sur `/auth/login`.
+- **Journalisation** : chaque requête est tracée (console + tampon `/logs`) avec masquage des jetons, mots de passe, cookies et clés ; `/logs` est réservé aux MANAGER.
 
 ## Comptes de démonstration (après `npm run seed`)
 
@@ -194,6 +198,7 @@ src/
 ├── config/                 # configuration .env + validation Joi
 ├── common/                 # contrats DTO, ApiException, filtre d'erreurs, décorateurs
 ├── health/                 # healthcheck
+├── logs/                   # journalisation de chaque requête HTTP (console + /logs)
 ├── users/                  # schéma User (+ `active` soft-disable)
 ├── auth/                   # login/refresh/me/logout, JWT, guard, hash mots de passe
 ├── access/                 # ACL serveur (service + schéma access_grants)

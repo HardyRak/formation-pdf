@@ -28,8 +28,24 @@ export default () => {
     uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
     /** Taille maximale acceptée pour un upload de PDF (Mo). */
     maxUploadMb: parseInt(process.env.MAX_UPLOAD_MB ?? '50', 10),
+    /** Faire confiance aux en-têtes X-Forwarded-* (derrière un reverse proxy). */
+    trustProxy: parseBool(process.env.TRUST_PROXY, false),
+    /** Nombre de requêtes conservées dans le tampon des logs (`/logs`). */
+    logBufferSize: parseInt(process.env.LOG_BUFFER_SIZE ?? '1000', 10),
   };
 };
+
+/**
+ * Convertit une variable d'environnement en booléen.
+ * Gère aussi bien une chaîne ('true', '1', 'yes', 'on') qu'un booléen
+ * (Joi réécrit les valeurs validées dans `process.env` avant l'exécution
+ * de cette fonction de configuration).
+ */
+function parseBool(value: string | boolean | undefined, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined) return fallback;
+  return ['true', '1', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
 
 /**
  * Construit l'URI de connexion MongoDB à partir des variables dédiées :
