@@ -9,6 +9,7 @@ import {
   ListRow,
   PageHeader,
   QueryGate,
+  SearchSelect,
   Select,
 } from '@/shared/components';
 import { useFormations } from '@/features/formations/hooks/useFormations';
@@ -44,9 +45,16 @@ export function AccessPage() {
 
   // Valeurs dérivées (pas de useEffect : dérivation pure).
   const userNames: Record<string, string> = {};
-  for (const u of users) userNames[u.id] = `${u.firstName} ${u.lastName}`;
+  const userOptions = users.map((u) => {
+    const label = `${u.firstName} ${u.lastName} (${u.email})`;
+    userNames[u.id] = `${u.firstName} ${u.lastName}`;
+    return { value: u.id, label };
+  });
   const formationNames: Record<string, string> = {};
-  for (const f of formations) formationNames[f.id] = f.name;
+  const formationOptions = formations.map((f) => {
+    formationNames[f.id] = f.name;
+    return { value: f.id, label: f.name };
+  });
 
   // Titres des documents référencés par les grants (pour libeller la révocation).
   const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
@@ -107,28 +115,20 @@ export function AccessPage() {
           </p>
           <FormGrid min={200}>
             <Field label="Utilisateur">
-              <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
-                <option value="" key="placeholder">
-                  — Choisir un apprenant —
-                </option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} ({u.email})
-                  </option>
-                ))}
-              </Select>
+              <SearchSelect
+                value={userId}
+                onChange={setUserId}
+                placeholder="Rechercher un apprenant…"
+                options={userOptions}
+              />
             </Field>
             <Field label="Formation">
-              <Select value={formationId} onChange={(e) => handleFormationChange(e.target.value)}>
-                <option value="" key="placeholder">
-                  — Choisir —
-                </option>
-                {formations.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </Select>
+              <SearchSelect
+                value={formationId}
+                onChange={handleFormationChange}
+                placeholder="Rechercher une formation…"
+                options={formationOptions}
+              />
             </Field>
             <Field label="Niveau (optionnel)">
               <Select
