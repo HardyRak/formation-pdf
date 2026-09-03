@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { styles } from './LevelsScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,8 +10,8 @@ import { levelStore, useLevelStore } from '../core/state/level.store';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { useAuthStore } from '../core/state/auth.store';
-import { getAccessDeniedMessage } from '../core/security/access';
 import { hasLevelAccess, hasFormationAccess, useAccessStore } from '../core/state/access.store';
+import { promptLockedAccess } from '../utils/access-alert';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Levels'>;
@@ -40,21 +40,17 @@ export function LevelsScreen({ route, navigation }: Props) {
 
   const formationHasAccess = hasFormationAccess(auth.user?.id, formationId);
 
-  const handleLevelPress = (levelId: string, levelName: string, order: number) => {
+  const handleLevelPress = (levelId: string) => {
     const hasAccess = hasLevelAccess(auth.user?.id, formationId, levelId);
     if (!hasAccess) {
       const isFormationLocked = !formationHasAccess;
-      Alert.alert(
-        isFormationLocked ? 'Formation verrouillée 🔒' : 'Niveau verrouillé 🔒',
-        isFormationLocked ? getAccessDeniedMessage('formation') : getAccessDeniedMessage('level'),
-        [
-          { text: 'Compris', style: 'default' },
-          { text: 'Voir profil', onPress: () => (navigation as any).navigate('Tabs', { screen: 'ProfileTab' }) },
-        ],
-      );
+      promptLockedAccess({
+        scope: isFormationLocked ? 'formation' : 'level',
+        title: isFormationLocked ? 'Formation verrouillée 🔒' : undefined,
+        onSeeProfile: () => navigation.navigate('Tabs', { screen: 'ProfileTab' }),
+      });
       return;
     }
-    levelStore.select(levelId);
     navigation.navigate('Documents', { levelId, formationId });
   };
 
@@ -144,7 +140,7 @@ export function LevelsScreen({ route, navigation }: Props) {
               index={index}
               elevation={3}
               borderColor={locked ? theme.border : isNext ? accent + '66' : undefined}
-              onPress={() => handleLevelPress(item.id, item.name, item.order)}
+              onPress={() => handleLevelPress(item.id)}
               accessibilityLabel={`Niveau ${item.order} : ${item.name}${locked ? ' - verrouillé' : ''}`}
               style={locked ? { opacity: 0.62 } : undefined}
             >
@@ -172,7 +168,7 @@ export function LevelsScreen({ route, navigation }: Props) {
                     </Text>
                     {locked ? <Ionicons name={'lock-closed'} size={14} color={theme.textFaint} /> : null}
                   </View>
-                  <Text style={[styles.cardMeta, { color: locked ? theme.textFaint : theme.textFaint }]}>
+                  <Text style={[styles.cardMeta, { color: theme.textFaint }]}>
                     {item.documentsCount} document{item.documentsCount > 1 ? 's' : ''} • {item.totalPages} pages {locked ? '• Verrouillé 🔒' : ''}
                   </Text>
                 </View>

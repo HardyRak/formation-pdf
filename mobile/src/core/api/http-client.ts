@@ -127,7 +127,7 @@ async function remoteBinary(
   return { bytes, contentType };
 }
 
-/** Bonita le type MIME (nettoie un éventuel `; charset=…`). */
+/** Normalise le type MIME (nettoie un éventuel `; charset=…`). */
 function mimeBase(contentType: string): string {
   return contentType.split(';')[0].trim().toLowerCase();
 }

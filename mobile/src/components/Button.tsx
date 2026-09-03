@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, ActivityIndicator, View, ViewStyle } from 'react-native';
 import { styles } from './Button.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme, radius, shadow } from '../core/theme/theme';
+import { useTheme, shadow } from '../core/theme/theme';
 import { OPACITY, SCALE } from '../core/theme/design-tokens';
 
 interface Props {

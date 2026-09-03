@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ViewStyle } from 'react-native';
 import { styles } from './SummaryCard.styles';
-import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { useTheme, shadow } from '../core/theme/theme';
 import { ProgressBar } from './ProgressBar';
 
 interface Props {

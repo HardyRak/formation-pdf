@@ -8,7 +8,6 @@ interface FormationState {
   refreshing: boolean;
   items: Formation[];
   query: string;
-  selectedId: string | null;
   error: ApiError | null;
   loadedAt: number | null;
 }
@@ -18,7 +17,6 @@ const initial: FormationState = {
   refreshing: false,
   items: [],
   query: '',
-  selectedId: null,
   error: null,
   loadedAt: null,
 };
@@ -44,15 +42,6 @@ export const formationStore = {
 
   setQuery(query: string): void {
     store.patchState({ query });
-  },
-
-  select(formationId: string | null): void {
-    store.patchState({ selectedId: formationId });
-  },
-
-  selected: (): Formation | null => {
-    const { items, selectedId } = store.state();
-    return items.find((item) => item.id === selectedId) ?? null;
   },
 
   byId: (id: string): Formation | null => store.state().items.find((item) => item.id === id) ?? null,

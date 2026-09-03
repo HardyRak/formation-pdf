@@ -34,8 +34,11 @@ export const documentStore = {
     );
     try {
       const items = await documentApi.listByLevel(levelId);
+      // Une navigation plus récente a pu demander un autre niveau : on ignore la réponse obsolète.
+      if (store.state().levelId !== levelId) return;
       store.patchState({ status: 'success', refreshing: false, items, error: null });
     } catch (error) {
+      if (store.state().levelId !== levelId) return;
       store.patchState({ status: 'error', refreshing: false, error: toApiError(error) });
     }
   },

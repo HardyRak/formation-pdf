@@ -11,6 +11,19 @@ npm start              # Expo (iOS / Android)
 npm run web            # Web
 ```
 
+## Vérifications (qualité)
+
+```bash
+npm run typecheck      # TypeScript strict (tsc --noEmit)
+npm run test:suite     # suite de tests embarquée exécutée en Node (mode mock)
+```
+
+`test:suite` compile `src/testing/test-suite.ts` en CommonJS dans
+`node_modules/.cache/suite` (jamais commité) puis l'exécute sous Node avec les
+modules natifs neutralisés — couvre stores, mock backend, services API,
+navigation et lecteur PDF, sans émulateur. La même suite reste accessible dans
+l'application via Profil → « Lancer la suite de tests » (Diagnostics).
+
 ## Configuration d'environnement
 
 L'application lit ses variables via un fichier `.env` (jamais commité,

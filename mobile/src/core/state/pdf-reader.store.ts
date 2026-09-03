@@ -48,12 +48,6 @@ export const pdfReaderStore = {
   state: store.state,
   subscribe: store.subscribe,
 
-  /** Type de contenu du document chargé. */
-  isPdf: (): boolean => {
-    const s = store.state();
-    return s.pdfBytes !== null && s.pdfBytes.length > 0;
-  },
-
   /** Charge le document + son flux authentifié, et calcule la page de reprise. */
   async open(documentId: string): Promise<void> {
     store.patchState({ ...initial, status: 'loading' });

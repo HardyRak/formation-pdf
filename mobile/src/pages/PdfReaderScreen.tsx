@@ -18,12 +18,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventScreenCapture } from 'expo-screen-capture';
-import { radius, spacing } from '../core/theme/theme';
+import { spacing } from '../core/theme/theme';
 import { MessageState } from '../components/StateViews';
 import { PdfPageView } from '../components/PdfPageView';
 import { PdfViewer } from '../components/PdfViewer';
 import { pdfReaderStore, usePdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
-import { progressionStore } from '../core/state/progression.store';
+import { useProgressionStore } from '../core/state/progression.store';
 import { formationStore } from '../core/state/formation.store';
 import type { PdfPage } from '../core/models';
 import type { RootStackParamList } from '../navigation/types';
@@ -37,13 +37,14 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const { documentId } = route.params;
   const { width, height } = useWindowDimensions();
   const state = usePdfReaderStore();
+  const progression = useProgressionStore();
   const listRef = useRef<FlatList>(null);
   const [resumeToast, setResumeToast] = useState<number | null>(null);
 
   // Protection renforcée pour le lecteur PDF : bloque capture même si App.tsx est modifié
   usePreventScreenCapture();
 
-  const isPdf = pdfReaderStore.isPdf();
+  const isPdf = state.pdfBytes !== null && state.pdfBytes.length > 0;
   const totalCount = isPdf ? state.pageCount : state.pages.length;
 
   const accent = useMemo(() => {
@@ -128,7 +129,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.zoomIndex]);
 
-  const progress = state.document ? progressionStore.documentProgress(state.document.id) : null;
+  const progress = state.document ? progression.documents[state.document.id] ?? null : null;
   const percent = progress?.percent ?? 0;
   const chromeVisible = !state.fullscreen;
 

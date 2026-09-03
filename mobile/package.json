@@ -43,6 +43,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "build:suite": "tsc src/testing/test-suite.ts --ignoreConfig --outDir node_modules/.cache/suite --rootDir src --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck --lib es2020,dom --types node --ignoreDeprecations 6.0",
+    "test:suite": "npm run build:suite && node scripts/run-suite.js node_modules/.cache/suite/testing/test-suite.js",
     "postinstall": "patch-package"
   },
   "private": true

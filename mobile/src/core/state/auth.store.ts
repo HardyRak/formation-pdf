@@ -161,10 +161,6 @@ export const authStore = {
     store.patchState({ error: null });
   },
 
-  clearNotice() {
-    store.patchState({ notice: null });
-  },
-
   /** Outil de démonstration : force l'expiration du jeton d'accès. */
   async simulateExpiredSession(): Promise<void> {
     const { session } = store.state();

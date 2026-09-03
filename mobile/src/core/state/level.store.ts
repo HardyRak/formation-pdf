@@ -8,7 +8,6 @@ interface LevelState {
   refreshing: boolean;
   formationId: string | null;
   items: Level[];
-  selectedId: string | null;
   error: ApiError | null;
 }
 
@@ -17,7 +16,6 @@ const initial: LevelState = {
   refreshing: false,
   formationId: null,
   items: [],
-  selectedId: null,
   error: null,
 };
 
@@ -36,14 +34,13 @@ export const levelStore = {
     );
     try {
       const items = await formationApi.levels(formationId);
+      // Une navigation plus récente a pu demander une autre formation : on ignore la réponse obsolète.
+      if (store.state().formationId !== formationId) return;
       store.patchState({ status: 'success', refreshing: false, items, error: null });
     } catch (error) {
+      if (store.state().formationId !== formationId) return;
       store.patchState({ status: 'error', refreshing: false, error: toApiError(error) });
     }
-  },
-
-  select(levelId: string | null): void {
-    store.patchState({ selectedId: levelId });
   },
 
   byId: (id: string): Level | null => store.state().items.find((item) => item.id === id) ?? null,

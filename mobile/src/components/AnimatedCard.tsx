@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, ViewStyle, PressableProps } from 'react-native';
 import { styles } from './AnimatedCard.styles';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { useTheme, shadow } from '../core/theme/theme';
 import { OPACITY, SCALE } from '../core/theme/design-tokens';
 
 interface Props {

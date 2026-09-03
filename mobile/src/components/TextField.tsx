@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, TextInputProps } from 'react-native';
 import { styles } from './TextField.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme, radius } from '../core/theme/theme';
+import { useTheme } from '../core/theme/theme';
 
 interface Props extends Omit<TextInputProps, 'style'> {
   label: string;

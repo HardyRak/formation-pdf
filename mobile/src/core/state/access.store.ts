@@ -9,7 +9,7 @@ import {
 
 /**
  * Droits d'accès chargés depuis le backend (`GET /auth/me/access`).
- * Remplaçent les règles codées en dur de `security/access.ts`, qui restent
+ * Remplacent les règles codées en dur de `security/access.ts`, qui restent
  * utilisées comme fallback (mode mock, ou tant que le résumé n'est pas chargé).
  */
 interface AccessState {

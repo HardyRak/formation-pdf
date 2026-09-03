@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { styles } from './LoginScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-import { useTheme, radius, spacing, shadow } from '../core/theme/theme';
+import { useTheme, spacing, shadow } from '../core/theme/theme';
 import { TextField } from '../components/TextField';
 import { Button } from '../components/Button';
 import { authStore, useAuthStore } from '../core/state/auth.store';
@@ -42,10 +42,16 @@ export function LoginScreen() {
 
   const valid = !errors.email && !errors.password;
 
-  useEffect(() => {
+  // La saisie après un échec masque l'erreur affichée (état dérivé de l'édition).
+  const updateEmail = (value: string) => {
+    setEmail(value);
     if (state.error) authStore.clearError();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, password]);
+  };
+
+  const updatePassword = (value: string) => {
+    setPassword(value);
+    if (state.error) authStore.clearError();
+  };
 
   const submit = async () => {
     setTouched({ email: true, password: true });
@@ -111,7 +117,7 @@ export function LoginScreen() {
                 label={'Email'}
                 icon={'mail-outline'}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={updateEmail}
                 onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                 placeholder={'prenom.nom@entreprise.fr'}
                 keyboardType={'email-address'}
@@ -124,7 +130,7 @@ export function LoginScreen() {
                 label={'Mot de passe'}
                 icon={'lock-closed-outline'}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={updatePassword}
                 onBlur={() => setTouched((t) => ({ ...t, password: true }))}
                 placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
                 secure

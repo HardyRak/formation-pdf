@@ -52,15 +52,3 @@ export function signalStore<S extends object>(name: string, initialState: S): Si
 export function useSignalStore<S extends object>(store: SignalStore<S>): S {
   return useSyncExternalStore(store.subscribe, store.state, store.state);
 }
-
-/** Injection de dépendance simplifiée (équivalent de inject()). */
-const registry = new Map<string, unknown>();
-export function provide<T>(token: string, value: T): T {
-  registry.set(token, value);
-  return value;
-}
-export function inject<T>(token: string): T {
-  const value = registry.get(token);
-  if (!value) throw new Error(`No provider found for token "${token}"`);
-  return value as T;
-}
