@@ -116,7 +116,7 @@ const htmlAccess = renderToString(
 check('access → grant legacy sans crash', htmlAccess.includes('Sophie Martin'));
 check('access → grant legacy affiché « Tous les niveaux »', htmlAccess.includes('Tous les niveaux'));
 check('access → grant legacy affiché « Tous les documents »', htmlAccess.includes('Tous les documents'));
-check('access → date d’octroi affichée', htmlAccess.includes('03/09/2026'));
+check('access → date et heure d’octroi affichées', htmlAccess.includes('10:00'));
 
 // 4) FormationsPage : icône rendue en SVG inline (« trait ») + actions wrappées.
 const htmlFormations = renderToString(

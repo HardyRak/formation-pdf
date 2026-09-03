@@ -20,11 +20,13 @@ import { useUserSearch } from '../hooks/useUserSearch';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
-/** Formate une date ISO en date française courte (ex. 03/09/2026). */
+/** Formate une date ISO en date + heure françaises (ex. 03/09/2026 à 10:30). */
 function formatGrantDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('fr-FR');
+  const day = date.toLocaleDateString('fr-FR');
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${day} à ${time}`;
 }
 
 export function AccessPage() {
