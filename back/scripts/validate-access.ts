@@ -200,6 +200,40 @@ async function main(): Promise<number> {
     'listGrants conserve levelIds',
   );
 
+
+  console.log('\n--- 7. Révocation du DERNIER document → PAS d\u2019escalade ---');
+  // Faille historique (ANALYSE §4.1) : un grant à UN seul document, quand on
+  // le révoque, ne doit PAS écrire `documentIds: []` (sémantique « tous les
+  // documents du niveau »). Sinon le document révoqué ET tous les autres
+  // documents du niveau deviennent lisibles.
+  grants.seed('usr-5', 'f-hse', { levelIds: ['l-hse-1'], documentIds: ['doc-hse-101'] });
+  const loneDoc: AccessibleDocument = {
+    _id: 'doc-hse-101',
+    formationId: 'f-hse',
+    levelId: 'l-hse-1',
+  };
+  const siblingDoc: AccessibleDocument = {
+    _id: 'doc-hse-999',
+    formationId: 'f-hse',
+    levelId: 'l-hse-1',
+  };
+  assert(
+    (await access.canReadDocument({ ...learner, id: 'usr-5' }, loneDoc)) === true,
+    'document unique lisible avant révocation',
+  );
+  const revokLone = await revokeOneDocument(grants, 'usr-5', 'doc-hse-101');
+  assert(revokLone === true, 'révocation du dernier document retourne true');
+  assert(
+    (await access.canReadDocument({ ...learner, id: 'usr-5' }, loneDoc)) === false,
+    'document révoqué N\'est plus lisible (pas d\'escalade)',
+  );
+  assert(
+    (await access.canReadDocument({ ...learner, id: 'usr-5' }, siblingDoc)) === false,
+    'autres documents du niveau N\'ont PAS été ouverts (pas d\'escalade)',
+  );
+  const afterLone = await access.grantsFor({ ...learner, id: 'usr-5' });
+  assert(afterLone.formations.length === 0, 'grant entier révoqué (formation retirée)');
+
   console.log('\n✅ TOUS LES TESTS D\'ACCÈS PASSENT.');
   return 0;
 }

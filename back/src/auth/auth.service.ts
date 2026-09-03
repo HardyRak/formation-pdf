@@ -10,6 +10,7 @@ import { User, UserDocument } from '../users/user.schema';
 import { RefreshToken, RefreshTokenDocument } from './refresh-token.schema';
 import { verifyPassword } from './password.util';
 import { generateRefreshToken, sha256 } from './token.util';
+import { toUserDto } from '../users/user.mapper';
 
 @Injectable()
 export class AuthService {
@@ -116,16 +117,5 @@ export class AuthService {
   }
 }
 
-export function toUserDto(user: User & { _id: string }): UserDto {
-  return {
-    id: user._id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: user.role,
-    company: user.company,
-    avatarColor: user.avatarColor,
-  };
-}
-
+export { toUserDto };
 export type { AuthUser };

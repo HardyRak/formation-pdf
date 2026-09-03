@@ -36,6 +36,14 @@ export default () => {
 };
 
 /**
+ * Masque les identifiants éventuels d'une URI MongoDB pour un affichage sûr
+ * dans les logs (l'URI ne doit JAMAIS exposer `user:password` en clair).
+ */
+export function maskMongoUri(uri: string): string {
+  return uri.replace(/\/\/([^/@]+)@/, '//***:***@');
+}
+
+/**
  * Convertit une variable d'environnement en booléen.
  * Gère aussi bien une chaîne ('true', '1', 'yes', 'on') qu'un booléen
  * (Joi réécrit les valeurs validées dans `process.env` avant l'exécution

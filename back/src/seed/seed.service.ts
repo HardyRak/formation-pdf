@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
 import { hashPassword } from '../auth/password.util';
+import { slug } from '../common/id.util';
 import { UserSchema } from '../users/user.schema';
 import { FormationSchema } from '../catalog/formation.schema';
 import { CategorySchema } from '../catalog/category.schema';
@@ -46,8 +47,7 @@ export class SeedService {
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
   async run(): Promise<void> {
-    // eslint-disable-next-line no-console
-    console.log('⚠️  Réinitialisation de la base de données…');
+    Logger.log('⚠️  Réinitialisation de la base de données…', 'Seed');
     await this.connection.dropDatabase();
 
     const FormationModel = this.connection.model('Formation', FormationSchema);
@@ -83,23 +83,12 @@ export class SeedService {
     await UserModel.insertMany(users);
     await GrantModel.insertMany(DEMO_GRANTS);
 
-    // eslint-disable-next-line no-console
-    console.log(
+    Logger.log(
       `✅ Seed terminé : ${categories.length} catégories, ` +
         `${catalog.formations.length} formations, ` +
         `${catalog.levels.length} niveaux, ${catalog.documents.length} documents, ` +
         `${users.length} comptes utilisateurs.`,
+      'Seed',
     );
   }
-}
-
-/** Slugifie un nom (même convention que l'admin) pour générer un id métier. */
-function slug(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
 }

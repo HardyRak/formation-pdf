@@ -171,7 +171,7 @@ export class AccessService {
     return (result.deletedCount ?? 0) > 0;
   }
 
-  /** Retire un document précis d'un grant. Nettoyage si le grant devient vide. */
+  /** Retire un document précis d'un grant. */
   async revokeDocument(userId: string, documentId: string): Promise<boolean> {
     const grant = await this.findOneDocument(userId, documentId);
     if (!grant) return false;
@@ -180,22 +180,20 @@ export class AccessService {
       (id) => id !== documentId,
     );
     if (nextDocs.length > 0) {
-      const saved = await this.grants.updateOne(
+      // Il reste d'autres documents octroyés : on retire simplement le document.
+      await this.grants.updateOne(
         { _id: grant._id as string },
         { $set: { documentIds: nextDocs } },
       );
-      return (saved.modifiedCount ?? 0) > 0;
+      return true;
     }
-    // Si le grant ne porte plus que des niveaux « complets » (documentIds vide),
-    // on peut le conserver ; sinon on le supprime.
-    const levelIds = (grant.levelIds as string[]) ?? [];
-    if (levelIds.length > 0) {
-      const saved = await this.grants.updateOne(
-        { _id: grant._id as string },
-        { $set: { documentIds: [] } },
-      );
-      return (saved.modifiedCount ?? 0) > 0;
-    }
+
+    // C'était le dernier document octroyé. On ne peut PAS écrire
+    // `documentIds: []` : la sémantique du projet est « documentIds vide = tous
+    // les documents du niveau ». Révouer le dernier document en écrivant `[]`
+    // ré-ouvrirait tout le niveau (escalade de privilège). On révoque donc le
+    // grant entier, ce qui retire l'accès à ce document (et à son niveau si
+    // celui-ci n'était ouvert que par cascade).
     return this.revokeGrant(userId, grant.formationId as string);
   }
 

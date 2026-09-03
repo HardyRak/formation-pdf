@@ -10,12 +10,22 @@ import {
 } from '../catalog/document.schema';
 import { AccessModule } from '../access/access.module';
 import { AdminController } from './admin.controller';
-import { AdminService } from './admin.service';
+import { AdminUsersService } from './admin-users.service';
+import { AdminAccessService } from './admin-access.service';
+import { AdminCatalogService } from './admin-catalog.service';
+import { AdminStatsService } from './admin-stats.service';
 import { ManagerGuard } from './manager.guard';
 
 /**
  * Module d'administration du back-office.
  * Accessible uniquement aux comptes `MANAGER` (garde `ManagerGuard`).
+ *
+ * La logique est répartie en services focalisés :
+ *  - `AdminUsersService`  : CRUD des comptes ;
+ *  - `AdminAccessService` : attribution / révocation des droits d'accès ;
+ *  - `AdminCatalogService`: CRUD du catalogue (formations / niveaux / documents /
+ *                           catégories) + import PDF ;
+ *  - `AdminStatsService`  : agrégations du tableau de bord.
  */
 @Module({
   imports: [
@@ -29,7 +39,18 @@ import { ManagerGuard } from './manager.guard';
     AccessModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService, ManagerGuard],
-  exports: [AdminService],
+  providers: [
+    AdminUsersService,
+    AdminAccessService,
+    AdminCatalogService,
+    AdminStatsService,
+    ManagerGuard,
+  ],
+  exports: [
+    AdminUsersService,
+    AdminAccessService,
+    AdminCatalogService,
+    AdminStatsService,
+  ],
 })
 export class AdminModule {}
