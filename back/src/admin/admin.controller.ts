@@ -154,7 +154,7 @@ export class AdminController {
 
   @Get('formations')
   listFormations(@Query() query: ListFormationsQueryDto) {
-    return this.catalog.listFormations(query.q);
+    return this.catalog.listFormations({ q: query.q, ids: query.ids });
   }
 
   @Post('formations')

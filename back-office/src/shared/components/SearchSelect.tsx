@@ -25,6 +25,7 @@ export function SearchSelect<T extends string = string>({
   onSearch,
   isLoading,
   searchError,
+  onSelect,
 }: {
   value: T | '';
   onChange: (value: T | '') => void;
@@ -39,6 +40,8 @@ export function SearchSelect<T extends string = string>({
   isLoading?: boolean;
   /** Erreur de recherche distante. */
   searchError?: string | null;
+  /** Libellé de l'option sélectionnée (utile pour conserver l'affichage hors recherche). */
+  onSelect?: (option: SearchSelectOption<T>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -76,6 +79,7 @@ export function SearchSelect<T extends string = string>({
 
   const choose = (option: SearchSelectOption<T>) => {
     onChange(option.value);
+    onSelect?.(option);
     setText(option.label);
     close();
   };

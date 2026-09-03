@@ -20,6 +20,8 @@ class FakeUsersModel {
   private match(filter: Record<string, unknown>): Row[] {
     return this.rows.filter((row) => {
       if (filter.role !== undefined && row.role !== filter.role) return false;
+      const idFilter = filter._id as { $in?: string[] } | undefined;
+      if (idFilter?.$in && !idFilter.$in.includes(row._id)) return false;
       const or = filter.$or as Record<string, RegExp>[] | undefined;
       if (or) {
         const ok = or.some((clause) =>
@@ -108,6 +110,14 @@ describe('AdminUsersService.listUsers', () => {
 
     const searched = await service.listUsers({ q: 'usr-b', page: 1, limit: 10 });
     expect(searched.items.map((u) => u.id)).toEqual(['usr-b']);
+  });
+
+  it('filtre par liste d ids (libellés en lot) sans charger toute la liste', async () => {
+    const service = new AdminUsersService(new FakeUsersModel(rows) as never);
+    const list = await service.listUsers({ ids: 'usr-a,usr-c' });
+
+    expect(list.total).toBe(2);
+    expect(list.items.map((u) => u.id)).toEqual(['usr-a', 'usr-c']);
   });
 
   it('ne renvoie jamais passwordHash', async () => {

@@ -106,10 +106,20 @@ export class AdminCatalogService {
 
   // ---- Formations ---------------------------------------------------------
 
-  async listFormations(q?: string): Promise<AdminDoc[]> {
-    const filter = q?.trim()
-      ? { name: { $regex: new RegExp(escapeRegex(q.trim()), 'i') } }
-      : {};
+  async listFormations(
+    options: { q?: string; ids?: string } = {},
+  ): Promise<AdminDoc[]> {
+    const filter: Record<string, unknown> = {};
+    if (options.q?.trim()) {
+      filter.name = { $regex: new RegExp(escapeRegex(options.q.trim()), 'i') };
+    }
+    if (options.ids?.trim()) {
+      const ids = options.ids
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (ids.length > 0) filter._id = { $in: ids };
+    }
     const rows = (await this.formations.find(filter).sort({ order: 1 }).lean()) as AnyDoc[];
     return rows.map(withId);
   }

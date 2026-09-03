@@ -29,6 +29,12 @@ export class ListUsersQueryDto {
   @IsIn(['LEARNER', 'MANAGER'])
   role?: 'LEARNER' | 'MANAGER';
 
+  /** Identifiants séparés par des virgules (résolution des libellés en lot). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  ids?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -49,6 +55,12 @@ export class ListFormationsQueryDto {
   @IsString()
   @MaxLength(80)
   q?: string;
+
+  /** Identifiants séparés par des virgules (résolution des libellés en lot). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  ids?: string;
 }
 
 /**

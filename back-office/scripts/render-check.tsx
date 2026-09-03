@@ -37,8 +37,8 @@ function makeClient(seed: 'none' | 'dashboard' | 'access' | 'formations') {
   }
   if (seed === 'access') {
     qc.setQueryData(['grants'], [legacyGrant]);
-    qc.setQueryData(['users'], users);
-    qc.setQueryData(['formations'], formations);
+    qc.setQueryData(['user-titles', ['usr-1']], users);
+    qc.setQueryData(['formation-titles', ['f-hse']], formations);
   }
   if (seed === 'formations') {
     qc.setQueryData(

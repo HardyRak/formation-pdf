@@ -15,10 +15,11 @@ export const accessService = {
   revokeDocument: (userId: string, documentId: string) =>
     api.delete<{ success: boolean }>(`/admin/access/document/${userId}/${documentId}`),
 
-  listUsers: (params: { q?: string; role?: string }) => {
+  listUsers: (params: { q?: string; role?: string; ids?: string }) => {
     const qs = new URLSearchParams();
     if (params.q) qs.set('q', params.q);
     if (params.role) qs.set('role', params.role);
+    if (params.ids) qs.set('ids', params.ids);
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     return api.get<AdminList<UserDto>>(`/admin/users${suffix}`);
   },

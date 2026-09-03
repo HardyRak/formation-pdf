@@ -12,13 +12,13 @@ import {
   SearchSelect,
   Select,
 } from '@/shared/components';
-import { useFormations } from '@/features/formations/hooks/useFormations';
 import { useFormationSearch } from '@/features/formations/hooks/useFormationSearch';
+import { useFormationTitles } from '@/features/formations/hooks/useFormationTitles';
 import { useLevels } from '@/features/formations/hooks/useLevels';
 import { useDocuments } from '@/features/formations/hooks/useDocuments';
 import { useGrants } from '../hooks/useGrants';
-import { useUsers } from '../hooks/useUsers';
 import { useUserSearch } from '../hooks/useUserSearch';
+import { useUserTitles } from '../hooks/useUserTitles';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
@@ -33,13 +33,13 @@ export function AccessPage() {
     revokeGrantMutation,
     revokeDocumentMutation,
   } = useGrants();
-  const { users } = useUsers();
-  const { formations } = useFormations();
   const userSearch = useUserSearch();
   const formationSearch = useFormationSearch();
 
   const [userId, setUserId] = useState('');
+  const [selectedUserLabel, setSelectedUserLabel] = useState('');
   const [formationId, setFormationId] = useState('');
+  const [selectedFormationLabel, setSelectedFormationLabel] = useState('');
   const [levelId, setLevelId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -48,43 +48,48 @@ export function AccessPage() {
   const { documents } = useDocuments(levelId, !!levelId);
 
   // Valeurs dérivées (pas de useEffect : dérivation pure).
-  const userNames: Record<string, string> = {};
-  const baseUserOptions = users.map((u) => {
-    userNames[u.id] = `${u.firstName} ${u.lastName}`;
-    return { value: u.id, label: `${u.firstName} ${u.lastName} (${u.email})` };
-  });
-  const formationNames: Record<string, string> = {};
-  const baseFormationOptions = formations.map((f) => {
-    formationNames[f.id] = f.name;
-    return { value: f.id, label: f.name };
-  });
-
-  // Pendant une recherche, les options proviennent du backend ; sur termes
-  // vides on réutilise les listes de base (déjà chargées).
   const userSearchActive = userSearch.search.trim().length > 0;
   const userOptions = userSearchActive
-    ? userSearch.users.map((u) => {
-        userNames[u.id] = `${u.firstName} ${u.lastName}`;
-        return { value: u.id, label: `${u.firstName} ${u.lastName} (${u.email})` };
-      })
-    : baseUserOptions;
+    ? userSearch.users.map((u) => ({
+        value: u.id,
+        label: `${u.firstName} ${u.lastName} (${u.email})`,
+      }))
+    : [];
 
   const formationSearchActive = formationSearch.search.trim().length > 0;
   const formationOptions = formationSearchActive
-    ? formationSearch.formations.map((f) => {
-        formationNames[f.id] = f.name;
-        return { value: f.id, label: f.name };
-      })
-    : baseFormationOptions;
+    ? formationSearch.formations.map((f) => ({ value: f.id, label: f.name }))
+    : [];
+
+  // Libellés des utilisateurs / formations référencés par les attributions,
+  // résolus en lot (un appel avec `ids` pour ne jamais charger toute la base).
+  const grantedUserIds = grants.map((g) => g.userId);
+  const grantedFormationIds = grants.map((g) => g.formationId);
+  const userNames = useUserTitles(grantedUserIds);
+  const formationNames = useFormationTitles(grantedFormationIds);
 
   // Titres des documents référencés par les grants (pour libeller la révocation).
   const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
   const documentTitles = useDocumentTitles(grantedDocIds);
 
+  const handleUserChange = (value: string) => {
+    setUserId(value);
+    if (!value) setSelectedUserLabel('');
+  };
+
+  const handleUserSelect = (option: { label: string }) => {
+    setSelectedUserLabel(option.label);
+  };
+
   const handleFormationChange = (value: string) => {
     setFormationId(value);
+    if (!value) setSelectedFormationLabel('');
     setLevelId('');
     setDocumentId('');
+  };
+
+  const handleFormationSelect = (option: { label: string }) => {
+    setSelectedFormationLabel(option.label);
   };
 
   const handleLevelChange = (value: string) => {
@@ -138,9 +143,10 @@ export function AccessPage() {
             <Field label="Utilisateur">
               <SearchSelect
                 value={userId}
-                onChange={setUserId}
+                onChange={handleUserChange}
+                onSelect={handleUserSelect}
                 onSearch={userSearch.setSearch}
-                selectedLabel={userId ? userNames[userId] : undefined}
+                selectedLabel={userId ? selectedUserLabel || userNames[userId] : undefined}
                 isLoading={userSearch.isSearching}
                 searchError={
                   userSearchActive && userSearch.isError
@@ -155,8 +161,11 @@ export function AccessPage() {
               <SearchSelect
                 value={formationId}
                 onChange={handleFormationChange}
+                onSelect={handleFormationSelect}
                 onSearch={formationSearch.setSearch}
-                selectedLabel={formationId ? formationNames[formationId] : undefined}
+                selectedLabel={
+                  formationId ? selectedFormationLabel || formationNames[formationId] : undefined
+                }
                 isLoading={formationSearch.isSearching}
                 searchError={
                   formationSearchActive && formationSearch.isError
