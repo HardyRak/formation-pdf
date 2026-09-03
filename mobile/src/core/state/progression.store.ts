@@ -281,20 +281,22 @@ export const progressionStore = {
 
   /** Enregistre la page consultée et met à jour tous les niveaux d'agrégation. */
   trackPage(doc: TrainingDocument, page: number): void {
+    const safePage = Math.max(1, Math.min(page || 1, Math.max(1, doc.pageCount || 1)));
+    const pageCount = Math.max(1, doc.pageCount || 1);
     const state = store.state();
     const existing = state.documents[doc.id];
-    const pagesRead = new Set(existing?.pagesRead ?? []);
-    pagesRead.add(page);
+    const pagesRead = new Set((existing?.pagesRead ?? []).filter((p) => p >= 1));
+    pagesRead.add(safePage);
     const readCount = pagesRead.size;
     const entry: DocumentProgress = {
       documentId: doc.id,
       levelId: doc.levelId,
       formationId: doc.formationId,
-      lastPage: page,
-      pageCount: doc.pageCount,
+      lastPage: safePage,
+      pageCount,
       pagesRead: Array.from(pagesRead).sort((a, b) => a - b),
-      percent: percentOf(readCount, doc.pageCount),
-      completed: readCount >= doc.pageCount,
+      percent: percentOf(readCount, pageCount),
+      completed: readCount >= pageCount,
       updatedAt: Date.now(),
     };
     if (
