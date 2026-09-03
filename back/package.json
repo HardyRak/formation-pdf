@@ -11,7 +11,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "seed": "ts-node -T src/seed/run-seed.ts",
-    "test:access": "node -r ts-node/register scripts/validate-access.ts"
+    "test:access": "node -r ts-node/register scripts/validate-access.ts",
+    "test:logs": "node -r ts-node/register scripts/validate-logs.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

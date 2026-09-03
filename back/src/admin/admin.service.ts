@@ -302,7 +302,10 @@ export class AdminService {
     order?: number;
   }): Promise<AnyDoc> {
     const count = await this.formations.countDocuments();
-    const _id = `f-${slug(input.name)}-${count + 1}`;
+    let _id = `f-${slug(input.name)}-${count + 1}`;
+    if (await this.formations.findById(_id).lean()) {
+      _id = `f-${slug(input.name)}-${count + 1}-${shortId()}`;
+    }
     // La catégorie saisie (nouvelle ou existante) devient une entité en base.
     const category = await this.ensureCategory(input.category);
     await this.formations.create({
@@ -365,7 +368,11 @@ export class AdminService {
     const formation = await this.formations.findById(formationId).lean();
     if (!formation) throw new ApiException(404, 'NOT_FOUND', 'Formation introuvable.');
     const count = await this.levels.countDocuments({ formationId });
-    const _id = `l-${formationId.slice(2)}-${count + 1}`;
+    const cleanFormationId = formationId.replace(/^f-/, '');
+    let _id = `l-${cleanFormationId}-${count + 1}`;
+    if (await this.levels.findById(_id).lean()) {
+      _id = `l-${cleanFormationId}-${count + 1}-${shortId()}`;
+    }
     await this.levels.create({
       _id,
       formationId,
@@ -427,7 +434,11 @@ export class AdminService {
     const level = await this.levels.findById(levelId).lean();
     if (!level) throw new ApiException(404, 'NOT_FOUND', 'Niveau introuvable.');
     const count = await this.documents.countDocuments({ levelId });
-    const _id = `doc-${levelId.slice(2)}-${count + 1}`;
+    const cleanLevelId = levelId.replace(/^l-/, '');
+    let _id = `doc-${cleanLevelId}-${count + 1}`;
+    if (await this.documents.findById(_id).lean()) {
+      _id = `doc-${cleanLevelId}-${count + 1}-${shortId()}`;
+    }
 
     const fileMeta = await this.initFileMeta(file);
     await this.documents.create({
