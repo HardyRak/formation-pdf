@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 export const styles: {
+  content: CSSProperties;
   learnerHead: CSSProperties;
   learnerIdentities: CSSProperties;
   learnerName: CSSProperties;
@@ -8,15 +9,18 @@ export const styles: {
   globalBlock: CSSProperties;
   globalLabel: CSSProperties;
   globalValue: CSSProperties;
+  formationsList: CSSProperties;
   formationRow: CSSProperties;
   formationHead: CSSProperties;
   formationIdentity: CSSProperties;
-  formationIcon: CSSProperties;
   formationName: CSSProperties;
   formationMeta: CSSProperties;
+  formationBadges: CSSProperties;
   percentLabel: CSSProperties;
   emptyText: CSSProperties;
 } = {
+  // Sépare l'en-tête (avatar + carte GLOBAL) de la liste des formations.
+  content: { display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' },
   learnerHead: { display: 'flex', alignItems: 'center', gap: '14px' },
   learnerIdentities: { flex: 1, minWidth: 0 },
   learnerName: { margin: 0, fontSize: '17px' },
@@ -39,6 +43,7 @@ export const styles: {
   },
   globalLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' },
   globalValue: { fontSize: '22px', fontWeight: 900, color: 'var(--primary)' },
+  formationsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
   formationRow: {
     display: 'flex',
     flexDirection: 'column',
@@ -54,9 +59,9 @@ export const styles: {
     gap: '10px',
   },
   formationIdentity: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 },
-  formationIcon: { fontSize: '20px', flexShrink: 0 },
   formationName: { fontWeight: 800, fontSize: '14px' },
   formationMeta: { fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' },
+  formationBadges: { display: 'flex', gap: '8px' },
   percentLabel: { fontSize: '13px', fontWeight: 800, flexShrink: 0 },
   emptyText: { color: 'var(--text-faint)', textAlign: 'center', padding: '24px 0' },
 };

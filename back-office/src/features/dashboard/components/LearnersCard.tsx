@@ -60,11 +60,7 @@ export function LearnersCard({ onSelect }: { onSelect: (learner: UserDto) => voi
               onClick={() => onSelect(learner)}
               title={`Voir l'avancement de ${learner.firstName} ${learner.lastName}`}
             >
-              <Avatar
-                firstName={learner.firstName}
-                lastName={learner.lastName}
-                color={learner.avatarColor}
-              />
+              <Avatar firstName={learner.firstName} lastName={learner.lastName} color={learner.avatarColor} />
               <span style={styles.learnerMeta}>
                 <span style={{ display: 'block', fontWeight: 700, fontSize: '14px' }}>
                   {learner.firstName} {learner.lastName}

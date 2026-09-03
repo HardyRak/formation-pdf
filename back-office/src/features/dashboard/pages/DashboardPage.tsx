@@ -71,10 +71,7 @@ export function DashboardPage() {
             </div>
 
             {selectedLearner ? (
-              <LearnerProgressModal
-                learner={selectedLearner}
-                onClose={() => setSelectedLearner(null)}
-              />
+              <LearnerProgressModal learner={selectedLearner} onClose={() => setSelectedLearner(null)} />
             ) : null}
           </div>
         );

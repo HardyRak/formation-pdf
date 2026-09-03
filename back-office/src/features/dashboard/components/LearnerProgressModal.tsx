@@ -1,4 +1,5 @@
 import type { LearnerFormationProgressDto, UserDto } from '@/shared/types/api';
+import { FormationIcon } from '@/features/formations/components/FormationIcon';
 import { Avatar, Badge, Modal, ProgressBar, QueryGate } from '@/shared/components';
 import { useLearnerProgress } from '../hooks/useLearnerProgress';
 import { styles } from './LearnerProgressModal.styles';
@@ -13,58 +14,50 @@ const formatDate = (timestamp: number | null): string | null =>
  * Modale d'avancement d'un apprenant : progression par formation (pages lues,
  * documents terminés, dernière activité) + progression globale.
  */
-export function LearnerProgressModal({
-  learner,
-  onClose,
-}: {
-  learner: UserDto;
-  onClose: () => void;
-}) {
+export function LearnerProgressModal({ learner, onClose }: { learner: UserDto; onClose: () => void }) {
   const { progress, isLoading, isError, error, refetch } = useLearnerProgress(learner.id);
 
   return (
     <Modal title={`Avancement — ${learner.firstName} ${learner.lastName}`} onClose={onClose}>
-      <div style={styles.learnerHead}>
-        <Avatar
-          firstName={learner.firstName}
-          lastName={learner.lastName}
-          color={learner.avatarColor}
-        />
-        <div style={styles.learnerIdentities}>
-          <h3 style={styles.learnerName}>
-            {learner.firstName} {learner.lastName}
-          </h3>
-          <div style={styles.learnerEmail}>{learner.email}</div>
-        </div>
-        {progress ? (
-          <div style={styles.globalBlock}>
-            <span style={styles.globalLabel}>GLOBAL</span>
-            <span style={styles.globalValue}>{progress.globalPercent}%</span>
+      <div style={styles.content}>
+        <div style={styles.learnerHead}>
+          <Avatar firstName={learner.firstName} lastName={learner.lastName} color={learner.avatarColor} />
+          <div style={styles.learnerIdentities}>
+            <h3 style={styles.learnerName}>
+              {learner.firstName} {learner.lastName}
+            </h3>
+            <div style={styles.learnerEmail}>{learner.email}</div>
           </div>
-        ) : null}
-      </div>
-
-      <QueryGate
-        isLoading={isLoading}
-        isError={isError}
-        errorMessage={error?.message}
-        onRetry={() => void refetch()}
-        loadingLabel="Chargement de l'avancement…"
-      >
-        {() =>
-          progress && progress.formations.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {progress.formations.map((formation) => (
-                <FormationProgressRow key={formation.formationId} formation={formation} />
-              ))}
+          {progress ? (
+            <div style={styles.globalBlock}>
+              <span style={styles.globalLabel}>GLOBAL</span>
+              <span style={styles.globalValue}>{progress.globalPercent}%</span>
             </div>
-          ) : (
-            <p style={styles.emptyText}>
-              Cet apprenant n'a accès à aucune formation (ou n'a encore rien ouvert).
-            </p>
-          )
-        }
-      </QueryGate>
+          ) : null}
+        </div>
+
+        <QueryGate
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage={error?.message}
+          onRetry={() => void refetch()}
+          loadingLabel="Chargement de l'avancement…"
+        >
+          {() =>
+            progress && progress.formations.length > 0 ? (
+              <div style={styles.formationsList}>
+                {progress.formations.map((formation) => (
+                  <FormationProgressRow key={formation.formationId} formation={formation} />
+                ))}
+              </div>
+            ) : (
+              <p style={styles.emptyText}>
+                Cet apprenant n'a accès à aucune formation (ou n'a encore rien ouvert).
+              </p>
+            )
+          }
+        </QueryGate>
+      </div>
     </Modal>
   );
 }
@@ -77,9 +70,7 @@ function FormationProgressRow({ formation }: { formation: LearnerFormationProgre
     <div style={styles.formationRow}>
       <div style={styles.formationHead}>
         <div style={styles.formationIdentity}>
-          <span style={styles.formationIcon} aria-hidden>
-            {formation.icon}
-          </span>
+          <FormationIcon name={formation.icon} color={formation.color} size={22} />
           <div style={{ minWidth: 0 }}>
             <div style={styles.formationName}>{formation.formationName}</div>
             <div style={styles.formationMeta}>
@@ -92,8 +83,8 @@ function FormationProgressRow({ formation }: { formation: LearnerFormationProgre
         </div>
         <span style={styles.percentLabel}>{formation.percent}%</span>
       </div>
-      <ProgressBar percent={formation.percent} />
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <ProgressBar percent={formation.percent} color={formation.color} />
+      <div style={styles.formationBadges}>
         <Badge color={formation.color}>
           {formation.pagesRead} / {formation.totalPages} pages lues
         </Badge>
