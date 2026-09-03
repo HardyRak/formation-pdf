@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Pdf from 'react-native-pdf';
-import { pdfDataUri } from '../core/utils/binary';
+import { pdfDataUriAsync } from '../core/utils/binary';
 import { READER } from '../core/theme/design-tokens';
 
 /**
@@ -37,7 +37,32 @@ export function PdfViewer({
   onLoadedPageCount,
   onRenderError,
 }: PdfViewerProps) {
-  const source = useMemo(() => ({ uri: pdfDataUri(bytes) }), [bytes]);
+  const [source, setSource] = useState<{ uri: string } | null>(null);
+
+  // Préparation base64 ASYNCNE et chunkée : l'encodage d'un gros PDF ne fige
+  // plus le thread principal (ni le premier rendu du viewer).
+  useEffect(() => {
+    let cancelled = false;
+    setSource(null);
+    pdfDataUriAsync(bytes)
+      .then((uri) => {
+        if (!cancelled) setSource({ uri });
+      })
+      .catch(() => {
+        if (!cancelled) onRenderError?.('Préparation du PDF impossible.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bytes, onRenderError]);
+
+  if (!source) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

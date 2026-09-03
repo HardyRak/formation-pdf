@@ -33,6 +33,7 @@ modèle dans `.env.example`). Variables disponibles :
 | --- | --- | --- |
 | `EXPO_PUBLIC_API_MODE` | Mode de transport du client HTTP | `remote` (API NestJS) · `mock` (backend simulé embarqué) |
 | `EXPO_PUBLIC_API_URL` | URL de base de l'API (préfixe `/v1` inclus) | ex. `http://localhost:3000/v1` |
+| `EXPO_PUBLIC_READER_MAX_MEMORY_MB` | Taille max d'un PDF gardé en mémoire par le lecteur natif | `30` |
 
 > Sur un appareil physique ou l'émulateur Android, `localhost` ne pointe pas
 > vers votre machine : utilisez respectivement l'IP LAN de la machine ou
@@ -69,6 +70,21 @@ backend renvoie sur `/documents/:id/stream` :
 
 Dans les deux cas, la progression (position, % lu, pages vues) est suivie et
 synchronisée en base exactement de la même manière.
+
+### Gros PDF : mémoire bornée (natif)
+
+Le lecteur natif détient les octets **et** leur base64 simultanément pendant
+le rendu, et la promesse de sécurité est « aucun fichier stocké sur
+l'appareil » (pas de cache disque, même temporaire). Au-delà de
+`EXPO_PUBLIC_READER_MAX_MEMORY_MB` (défaut 30 Mo), l'ouverture bascule sur un
+état d'erreur explicite `DOCUMENT_TOO_LARGE` (sans bouton Réessayer) plutôt
+que de risquer un OOM sur les appareils milieu de gamme. Le web n'est pas
+concerné (Blob URL, pas de base64).
+
+La préparation base64 est en outre **asynchrone et chunkée**
+(`pdfDataUriAsync`, rend la main toutes les 512 Ko) : l'encodage d'un gros PDF
+ne fige plus le thread principal, et l'accumulation se fait par parties
+(`join`) au lieu d'une concaténation quadratique.
 
 ## Compatibilité Android : pages 16 KB & permissions de stockage
 

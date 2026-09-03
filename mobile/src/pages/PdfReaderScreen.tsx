@@ -138,6 +138,8 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const progress = state.document ? progression.documents[state.document.id] ?? null : null;
   const percent = progress?.percent ?? 0;
   const chromeVisible = !state.fullscreen;
+  // Un document refusé car trop volumineux ne sera pas plus lisible au rejeu.
+  const canRetry = state.error?.code !== 'DOCUMENT_TOO_LARGE';
 
   /** Lignes du sommaire : libellé dérivé une seule fois par lot de pages. */
   const outlineEntries = useMemo(
@@ -214,8 +216,8 @@ export function PdfReaderScreen({ route, navigation }: Props) {
             tone={'danger'}
             title={'Lecture impossible'}
             message={state.error?.message ?? 'Le document n\u2019a pas pu \u00eatre charg\u00e9.'}
-            actionLabel={'R\u00e9essayer'}
-            onAction={() => void pdfReaderStore.open(documentId)}
+            actionLabel={canRetry ? 'Réessayer' : undefined}
+            onAction={canRetry ? () => void pdfReaderStore.open(documentId) : undefined}
           />
           <Pressable onPress={close} style={{ marginTop: spacing.md }}>
             <Text style={{ color: READER.textMuted, fontWeight: '700' }}>Retour aux documents</Text>

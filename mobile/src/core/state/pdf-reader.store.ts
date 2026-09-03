@@ -1,6 +1,8 @@
 import type { ApiError, PdfPage, RequestStatus, TrainingDocument } from '../models';
+import { Platform } from 'react-native';
 import { documentApi } from '../api/document.api';
 import { toApiError } from '../api/http-client';
+import { READER_MAX_MEMORY_MB } from '../config/env';
 import { looksLikePdf } from '../utils/binary';
 import { signalStore, useSignalStore } from './create-store';
 import { progressionStore } from './progression.store';
@@ -59,6 +61,26 @@ export const pdfReaderStore = {
       ]);
 
       if (result.kind === 'pdf') {
+        // Mémoire bornée (natif uniquement) : octets + base64 coexistent au
+        // rendu et aucun fichier n'est écrit sur l'appareil (promesse de
+        // sécurité). Au-delà du seuil : erreur explicite, pas de crash OOM.
+        if (Platform.OS !== 'web') {
+          const maxBytes = READER_MAX_MEMORY_MB * 1024 * 1024;
+          if (result.bytes.byteLength > maxBytes) {
+            store.patchState({
+              status: 'error',
+              error: {
+                status: 413,
+                code: 'DOCUMENT_TOO_LARGE',
+                message:
+                  `Document trop volumineux (${Math.round(result.bytes.byteLength / (1024 * 1024))} Mo) : ` +
+                  `la lecture sécurisée en mémoire est limitée à ${READER_MAX_MEMORY_MB} Mo sur cet appareil.`,
+              },
+            });
+            return;
+          }
+        }
+
         // Contenu invalide (ex. JSON d'erreur servi en binaire) : état d'erreur
         // explicite plutôt qu'un renderer muet sur un document illisible.
         if (!looksLikePdf(result.bytes)) {
