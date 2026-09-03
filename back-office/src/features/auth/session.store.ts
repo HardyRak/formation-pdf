@@ -136,7 +136,11 @@ export const useSessionStore = create<
           try {
             await fetch(`${API_PREFIX}/auth/logout`, {
               method: 'POST',
-              headers: { Authorization: `Bearer ${session.accessToken}` },
+              headers: {
+                Authorization: `Bearer ${session.accessToken}`,
+                'X-Client-App': 'pdf-formation-backoffice',
+                'X-Client-Platform': 'web',
+              },
             });
           } catch {
             /* non bloquant : la session n'est de toute façon pas conservée */

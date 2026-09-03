@@ -48,7 +48,10 @@ async function rawRequest<T>(
   options: { body?: unknown; anonymous?: boolean; isForm?: boolean },
   token: string | null,
 ): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'X-Client-App': 'pdf-formation-backoffice',
+    'X-Client-Platform': 'web',
+  };
   if (!options.isForm) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -110,7 +113,10 @@ async function request<T>(
 
 /** Téléchargement binaire (PDF) — renvoie un Blob, avec jeton Bearer. */
 async function rawBlob(path: string, token: string | null): Promise<Blob> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'X-Client-App': 'pdf-formation-backoffice',
+    'X-Client-Platform': 'web',
+  };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_PREFIX}${path}`, { method: 'GET', headers });
   if (!res.ok) {

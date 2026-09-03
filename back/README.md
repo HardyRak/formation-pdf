@@ -162,7 +162,7 @@ rester compatibles avec le client mobile.
 - **PDF sur volume** : les `.pdf` importés sont écrits dans `UPLOAD_DIR` et ne sont servis QUE par `/documents/:id/stream` (jamais d'URL publique).
 - **Anti-cache** sur `/stream` (`Cache-Control: no-store`).
 - **Rate-limiting** global + renforcé sur `/auth/login`.
-- **Journalisation** : chaque requête est tracée (console + tampon `/logs`) avec masquage des jetons, mots de passe, cookies et clés ; `/logs` est réservé aux MANAGER.
+- **Journalisation enrichie** : chaque requête est tracée (console + tampon `/logs`) avec masquage des données sensibles (tokens, mots de passe, cookies, clés). En cas d'erreur (4xx / 5xx / exceptions inattendues), les logs sont automatiquement enrichis avec le type d'exception, le message technique réel, le code d'erreur, les paramètres de route/query, le corps de requête masqué, les détails de validation et la stack trace complète pour un débogage rapide.
 
 ## Comptes de démonstration (après `npm run seed`)
 
@@ -181,6 +181,7 @@ rester compatibles avec le client mobile.
 | `npm run typecheck` | Vérification TypeScript seule |
 | `npm run seed` | Réinitialise et peuple MongoDB |
 | `npm run test:access` | Valide la logique d'accès (cascade document → niveau → formation) |
+| `npm run test:logs` | Valide l'enrichissement des logs et la capture d'erreurs détaillées |
 
 ## ⚠️ Adaptation nécessaire côté mobile
 

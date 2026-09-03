@@ -73,7 +73,10 @@ async function remoteRequest<T>(
   token: string | null,
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'X-Client-App': 'pdf-formation-mobile',
+    'X-Client-Platform': 'mobile',
+  };
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -101,7 +104,10 @@ async function remoteBinary(
   token: string | null,
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   const url = `${API_BASE_URL}${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'X-Client-App': 'pdf-formation-mobile',
+    'X-Client-Platform': 'mobile',
+  };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const response = await fetch(url, { method: 'GET', headers });

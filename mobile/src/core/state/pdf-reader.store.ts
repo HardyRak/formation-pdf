@@ -65,8 +65,8 @@ export const pdfReaderStore = {
 
       if (result.kind === 'pdf') {
         // Vrai fichier PDF : on conserve les octets et le nombre de pages réel.
-        const pageCount = Math.max(1, result.pageCount || document.pageCount);
-        const resumePage = Math.min(progressionStore.resumePage(documentId), pageCount);
+        const pageCount = Math.max(1, result.pageCount || document.pageCount || 1);
+        const resumePage = Math.max(1, Math.min(progressionStore.resumePage(documentId), pageCount));
         store.patchState({
           status: 'success',
           document,
@@ -82,13 +82,14 @@ export const pdfReaderStore = {
       }
 
       // Contenu structuré en blocs (ancien modèle).
-      const resumePage = Math.min(progressionStore.resumePage(documentId), result.pages.length);
+      const pageCount = Math.max(1, result.pages.length);
+      const resumePage = Math.max(1, Math.min(progressionStore.resumePage(documentId), pageCount));
       store.patchState({
         status: 'success',
         document,
         pages: result.pages,
         pdfBytes: null,
-        pageCount: result.pages.length,
+        pageCount,
         currentPage: resumePage,
         resumePage,
         error: null,

@@ -158,6 +158,26 @@ function flushPending(): Promise<boolean> {
   return flushInFlight;
 }
 
+function sanitizeDocumentProgress(entry: DocumentProgress): DocumentProgress {
+  const pageCount = Math.max(1, entry.pageCount || 1);
+  const rawPages = Array.isArray(entry.pagesRead) ? entry.pagesRead : [];
+  const validPages = rawPages
+    .map((p) => (typeof p === 'number' && p <= 0 ? 1 : p))
+    .filter((p) => typeof p === 'number' && Number.isInteger(p) && p >= 1 && p <= pageCount);
+  const pagesRead = Array.from(new Set(validPages.length > 0 ? validPages : [1])).sort((a, b) => a - b);
+  const lastPage = Math.max(1, Math.min(entry.lastPage || 1, pageCount));
+  const readCount = pagesRead.length;
+
+  return {
+    ...entry,
+    pageCount,
+    lastPage,
+    pagesRead,
+    percent: percentOf(readCount, pageCount),
+    completed: readCount >= pageCount,
+  };
+}
+
 async function runFlush(): Promise<boolean> {
   if (retryTimer) clearTimeout(retryTimer);
 
@@ -170,9 +190,17 @@ async function runFlush(): Promise<boolean> {
     const op = queue[0];
     try {
       if (op.kind === 'upsert') {
-        const entry = store.state().documents[op.documentId];
+        const rawEntry = store.state().documents[op.documentId];
         // L'entrée a disparu localement (reset concurrent) : rien à pousser.
-        if (entry) await progressionApi.upsert(op.documentId, entry);
+        if (rawEntry) {
+          const entry = sanitizeDocumentProgress(rawEntry);
+          if (entry !== rawEntry) {
+            store.patchState({
+              documents: { ...store.state().documents, [op.documentId]: entry },
+            });
+          }
+          await progressionApi.upsert(op.documentId, entry);
+        }
       } else if (op.kind === 'reset') {
         await progressionApi.resetDocument(op.documentId);
       } else {
@@ -182,6 +210,13 @@ async function runFlush(): Promise<boolean> {
       store.patchState({ pending: queue });
     } catch (error) {
       const apiErr = toApiError(error);
+      // Si l'erreur est un 400 / 422 (rejet validation DTO), on retire l'élément fautif pour éviter la boucle de retry
+      if (apiErr.status === 400 || apiErr.status === 422) {
+        queue = queue.slice(1);
+        store.patchState({ syncStatus: 'idle', syncError: null, pending: queue });
+        schedulePersist();
+        continue;
+      }
       store.patchState({ syncStatus: 'error', syncError: apiErr.message, pending: queue });
       scheduleRetry();
       return false;
@@ -249,10 +284,16 @@ export const progressionStore = {
    */
   async hydrate(userId: string): Promise<void> {
     const saved = await appStorage.getJSON<LocalSnapshot>(storageKey(userId));
+    const rawDocs = saved?.documents ?? {};
+    const sanitizedDocs: Record<string, DocumentProgress> = {};
+    for (const [docId, doc] of Object.entries(rawDocs)) {
+      sanitizedDocs[docId] = sanitizeDocumentProgress(doc);
+    }
+
     store.patchState({
       userId,
       hydrated: true,
-      documents: saved?.documents ?? {},
+      documents: sanitizedDocs,
       currentDocumentId: saved?.currentDocumentId ?? null,
       pending: saved?.pending ?? [],
       syncStatus: 'idle',
@@ -281,20 +322,22 @@ export const progressionStore = {
 
   /** Enregistre la page consultée et met à jour tous les niveaux d'agrégation. */
   trackPage(doc: TrainingDocument, page: number): void {
+    const safePage = Math.max(1, Math.min(page || 1, Math.max(1, doc.pageCount || 1)));
+    const pageCount = Math.max(1, doc.pageCount || 1);
     const state = store.state();
     const existing = state.documents[doc.id];
-    const pagesRead = new Set(existing?.pagesRead ?? []);
-    pagesRead.add(page);
+    const pagesRead = new Set((existing?.pagesRead ?? []).filter((p) => p >= 1));
+    pagesRead.add(safePage);
     const readCount = pagesRead.size;
     const entry: DocumentProgress = {
       documentId: doc.id,
       levelId: doc.levelId,
       formationId: doc.formationId,
-      lastPage: page,
-      pageCount: doc.pageCount,
+      lastPage: safePage,
+      pageCount,
       pagesRead: Array.from(pagesRead).sort((a, b) => a - b),
-      percent: percentOf(readCount, doc.pageCount),
-      completed: readCount >= doc.pageCount,
+      percent: percentOf(readCount, pageCount),
+      completed: readCount >= pageCount,
       updatedAt: Date.now(),
     };
     if (

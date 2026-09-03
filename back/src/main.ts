@@ -1,12 +1,27 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Express } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { ensureUploadDir } from './admin/uploads';
+
+// Capture des rejets asynchrones et exceptions non interceptées avec NestJS Logger
+const systemLogger = new Logger('System');
+
+process.on('unhandledRejection', (reason: unknown) => {
+  if (reason instanceof Error) {
+    systemLogger.error(`Promesse non gérée (UnhandledRejection): ${reason.message}`, reason.stack);
+  } else {
+    systemLogger.error(`Promesse non gérée (UnhandledRejection): ${String(reason)}`);
+  }
+});
+
+process.on('uncaughtException', (err: Error) => {
+  systemLogger.error(`Exception non interceptée (UncaughtException): ${err.message}`, err.stack);
+});
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
