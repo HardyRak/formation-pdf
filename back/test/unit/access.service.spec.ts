@@ -173,6 +173,13 @@ describe('AccessService', () => {
     expect(grants[0].documentIds).toEqual(expect.arrayContaining(['doc-hse-101', 'doc-hse-102']));
   });
 
+  it('renseigne la date d’octroi (grantedAt) à chaque upsert', async () => {
+    const { access } = buildAccess();
+    await access.upsertGrant('usr-1', 'f-hse', ['l-hse-1'], ['doc-hse-101']);
+    const grants = await access.listGrants('usr-1');
+    expect(grants[0].grantedAt).toBeInstanceOf(Date);
+  });
+
   it('révoquer un document parmi plusieurs conserve les autres', async () => {
     const { grants, access } = buildAccess();
     grants.seed('usr-3', 'f-cyber', {

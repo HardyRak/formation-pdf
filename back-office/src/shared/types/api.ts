@@ -76,6 +76,8 @@ export interface AccessGrantDto {
   /** Libellés fournis par l'API admin (évitent une requête par id côté front). */
   userName?: string;
   formationName?: string;
+  /** Date du dernier octroi (ISO) ; absente pour les grants antérieurs. */
+  grantedAt?: string;
 }
 
 export interface AdminList<T> {

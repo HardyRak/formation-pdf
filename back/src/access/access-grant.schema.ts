@@ -31,6 +31,13 @@ export class AccessGrant {
    */
   @Prop({ type: [String], default: [] })
   documentIds!: string[];
+
+  /**
+   * Date du dernier octroi (création ou fusion d'un nouvel accès en cascade).
+   * Optionnel pour rester compatible avec les grants créés avant ce champ.
+   */
+  @Prop({ type: Date })
+  grantedAt?: Date;
 }
 
 export const AccessGrantSchema = SchemaFactory.createForClass(AccessGrant);

@@ -20,6 +20,13 @@ import { useUserSearch } from '../hooks/useUserSearch';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
+/** Formate une date ISO en date française courte (ex. 03/09/2026). */
+function formatGrantDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('fr-FR');
+}
+
 export function AccessPage() {
   const {
     grants,
@@ -216,6 +223,11 @@ export function AccessPage() {
                   subtitle={grant.formationName ?? formationNames[grant.formationId] ?? grant.formationId}
                   badges={
                     <>
+                      <Badge color="var(--text-muted)">
+                        {grant.grantedAt
+                          ? `Accordé le ${formatGrantDate(grant.grantedAt)}`
+                          : 'Date non renseignée'}
+                      </Badge>
                       {hasFullLevels ? (
                         <Badge color="var(--accent)">Tous les niveaux</Badge>
                       ) : (

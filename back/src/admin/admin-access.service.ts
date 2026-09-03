@@ -84,6 +84,14 @@ export class AdminAccessService {
       }
     }
 
+    // Idempotence métier : si l'utilisateur dispose DÉJÀ de l'accès demandé
+    // (tous niveaux, niveaux + documents, ou accès complet), on refuse
+    // l'octroi plutôt que de faire un upsert sans effet.
+    const existing = await this.access.getGrant(userId, formationId);
+    if (existing && this.covers(existing, Array.from(effectiveLevels), effectiveDocs)) {
+      throw new ApiException(409, 'CONFLICT', 'Cet utilisateur dispose déjà de l\'accès demandé.');
+    }
+
     return this.access.upsertGrant(userId, formationId, Array.from(effectiveLevels), effectiveDocs);
   }
 
@@ -97,5 +105,28 @@ export class AdminAccessService {
     const ok = await this.access.revokeDocument(userId, documentId);
     if (!ok) throw new ApiException(404, 'NOT_FOUND', 'Accès introuvable.');
     return { success: true };
+  }
+
+  /**
+   * Le grant existant couvre-t-il déjà la demande ?
+   * - `levelIds` vide côté demande = TOUS les niveaux (couvert seulement si le
+   *   grant est déjà « tous niveaux »).
+   * - `documentIds` vide côté demande = tous les documents des niveaux couverts
+   *   (couvert seulement si le grant est déjà « tous documents »).
+   */
+  private covers(
+    existing: { levelIds: string[]; documentIds: string[] },
+    levelIds: string[],
+    documentIds: string[],
+  ): boolean {
+    const allLevels = existing.levelIds.length === 0;
+    const allDocs = existing.documentIds.length === 0;
+
+    const levelsCovered =
+      levelIds.length === 0 ? allLevels : allLevels || levelIds.every((id) => existing.levelIds.includes(id));
+    const docsCovered =
+      documentIds.length === 0 ? allDocs : allDocs || documentIds.every((id) => existing.documentIds.includes(id));
+
+    return levelsCovered && docsCovered;
   }
 }

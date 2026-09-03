@@ -59,6 +59,14 @@ export class AccessService {
     return (await this.grants.exists({ userId: user.id, formationId })) !== null;
   }
 
+  /** Grant d'un couple user/formation (champs tableaux normalisés). */
+  async getGrant(
+    userId: string,
+    formationId: string,
+  ): Promise<(AccessGrant & { _id: string }) | null> {
+    return this.findById(userId, formationId);
+  }
+
   async canReadLevel(
     user: AuthUser,
     formationId: string,
@@ -158,6 +166,7 @@ export class AccessService {
           formationId,
           levelIds: mergedLevels,
           documentIds: mergedDocs,
+          grantedAt: new Date(),
         },
       },
       { upsert: true, new: true, lean: true },

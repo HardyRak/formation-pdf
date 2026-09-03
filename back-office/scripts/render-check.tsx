@@ -22,7 +22,12 @@ const stats = {
 const formations = [{ _id: 'f-hse', id: 'f-hse', name: 'HSE & Sécurité' }];
 
 // Grant « pré-migration » : ni levelIds ni documentIds (comme en base ancienne).
-const legacyGrant = { _id: 'usr-1:f-hse', userId: 'usr-1', formationId: 'f-hse' };
+const legacyGrant = {
+  _id: 'usr-1:f-hse',
+  userId: 'usr-1',
+  formationId: 'f-hse',
+  grantedAt: '2026-09-03T10:00:00.000Z',
+};
 const users = {
   items: [{ id: 'usr-1', firstName: 'Sophie', lastName: 'Martin', email: 'sophie@x.io' }],
 };
@@ -111,6 +116,7 @@ const htmlAccess = renderToString(
 check('access → grant legacy sans crash', htmlAccess.includes('Sophie Martin'));
 check('access → grant legacy affiché « Tous les niveaux »', htmlAccess.includes('Tous les niveaux'));
 check('access → grant legacy affiché « Tous les documents »', htmlAccess.includes('Tous les documents'));
+check('access → date d’octroi affichée', htmlAccess.includes('03/09/2026'));
 
 // 4) FormationsPage : icône rendue en SVG inline (« trait ») + actions wrappées.
 const htmlFormations = renderToString(
