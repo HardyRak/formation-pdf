@@ -4,10 +4,11 @@ import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { accessService } from '../services/accessService';
 
 /**
- * Utilisateurs du select « Utilisateur », chargés côté serveur.
+ * Apprenants du select « Utilisateur », chargés côté serveur.
  *
- * - Au premier affichage : les 5 premiers utilisateurs (`limit=5`).
- * - À la saisie : recherche `/v1/admin/users?q=…`, toujours limitée à 5.
+ * - On ne liste que `role=LEARNER` (on donne l'accès à un apprenant).
+ * - Au premier affichage : les 5 premiers (`limit=5`).
+ * - À la saisie : recherche `/v1/admin/users?q=…&role=LEARNER`, limitée à 5.
  */
 export function useUserSearch() {
   const [search, setSearchState] = useState('');
@@ -15,7 +16,12 @@ export function useUserSearch() {
 
   const query = useQuery({
     queryKey: ['user-search', debouncedSearch],
-    queryFn: () => accessService.listUsers({ q: debouncedSearch || undefined, limit: 5 }),
+    queryFn: () =>
+      accessService.listUsers({
+        q: debouncedSearch || undefined,
+        role: 'LEARNER',
+        limit: 5,
+      }),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
