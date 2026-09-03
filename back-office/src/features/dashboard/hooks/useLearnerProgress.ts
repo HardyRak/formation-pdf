@@ -27,7 +27,9 @@ export function useLearnerProgress(userId: string | null) {
 
   const pages = query.data?.pages ?? [];
   const formations = pages.flatMap((page) => page.formations);
-  const totalFormations = pages[0]?.totalFormations ?? 0;
+  // Compat backends antérieurs sans `totalFormations` : ils renvoient toute la
+  // liste d'un coup → tout est déjà chargé (jamais de « 4 / 0 formations »).
+  const totalFormations = Math.max(pages[0]?.totalFormations ?? 0, formations.length);
   const globalPercent = pages[0]?.globalPercent ?? 0;
 
   return {
