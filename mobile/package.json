@@ -34,6 +34,7 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "@types/react": "~19.2.2",
     "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
@@ -43,6 +44,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "build:suite": "tsc src/testing/test-suite.ts --ignoreConfig --outDir node_modules/.cache/suite --rootDir src --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck --lib es2020,dom --types node --ignoreDeprecations 6.0",
+    "test:suite": "npm run build:suite && node scripts/run-suite.js node_modules/.cache/suite/testing/test-suite.js",
     "postinstall": "patch-package"
   },
   "private": true

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { styles } from './FormationsScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,8 +10,8 @@ import { FormationCard } from '../components/FormationCard';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
 import { useAuthStore } from '../core/state/auth.store';
-import { getAccessDeniedMessage } from '../core/security/access';
 import { hasFormationAccess, useAccessStore } from '../core/state/access.store';
+import { promptLockedAccess } from '../utils/access-alert';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -21,7 +21,7 @@ export function FormationsScreen({ navigation }: Props) {
   const state = useFormationStore();
   const auth = useAuthStore();
   const access = useAccessStore();
-  useProgressionStore();
+  const progression = useProgressionStore();
 
   useEffect(() => {
     if (state.status === 'idle') void formationStore.load();
@@ -31,13 +31,14 @@ export function FormationsScreen({ navigation }: Props) {
 
   const globalPercent = useMemo(() => {
     const totalPages = state.items.reduce((sum, f) => sum + f.totalPages, 0);
-    const read = progressionStore.pagesReadIn(() => true);
+    const read = Object.values(progression.documents).reduce((sum, doc) => sum + doc.pagesRead.length, 0);
     return totalPages ? Math.round((read / totalPages) * 100) : 0;
-  }, [state.items, progressionStore.state().documents]);
+  }, [state.items, progression.documents]);
 
-  const accessibleCount = useMemo(() => {
-    return state.items.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length;
-  }, [state.items, auth.user?.id, access]);
+  const accessibleCount = useMemo(
+    () => state.items.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length,
+    [state.items, auth.user?.id, access],
+  );
 
   const lockedCount = state.items.length - accessibleCount;
 
@@ -45,24 +46,19 @@ export function FormationsScreen({ navigation }: Props) {
     (formationId: string) => {
       const hasAccess = hasFormationAccess(auth.user?.id, formationId);
       if (!hasAccess) {
-        Alert.alert(
-          'Accès restreint 🔒',
-          getAccessDeniedMessage('formation'),
-          [
-            { text: 'Compris', style: 'default' },
-            { text: 'Voir profil', onPress: () => (navigation as any).navigate('Tabs', { screen: 'ProfileTab' }) },
-          ],
-        );
+        promptLockedAccess({
+          scope: 'formation',
+          onSeeProfile: () => navigation.navigate('Tabs', { screen: 'ProfileTab' }),
+        });
         return;
       }
-      formationStore.select(formationId);
       navigation.navigate('Levels', { formationId });
     },
     [navigation, auth.user?.id],
   );
 
   const goToProfile = useCallback(() => {
-    (navigation as any).navigate('Tabs', { screen: 'ProfileTab' });
+    navigation.navigate('Tabs', { screen: 'ProfileTab' });
   }, [navigation]);
 
   const firstName = auth.user?.firstName ?? '';

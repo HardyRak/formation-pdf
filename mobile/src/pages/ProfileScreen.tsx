@@ -13,7 +13,7 @@ import { progressionStore, useProgressionStore } from '../core/state/progression
 import { requestLogs } from '../core/api/http-client';
 import { FORMATION_LABELS } from '../core/security/access';
 import { getAccessibleFormations, hasFormationAccess, useAccessStore } from '../core/state/access.store';
-import { formationStore, useFormationStore } from '../core/state/formation.store';
+import { useFormationStore } from '../core/state/formation.store';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -36,7 +36,7 @@ export function ProfileScreen({ navigation }: Props) {
   const documentsTracked = Object.keys(progression.documents).length;
   const logs = requestLogs().slice(0, 5);
 
-  const allFormations = formations.items.length > 0 ? formations.items : formationStore.state().items;
+  const allFormations = formations.items;
 
   const accessibleFormations = useMemo(() => {
     return getAccessibleFormations(auth.user?.id);
@@ -116,7 +116,7 @@ export function ProfileScreen({ navigation }: Props) {
                     }}
                   >
                     <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: hasAccess ? f.color + '22' : theme.textFaint + '18', alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name={hasAccess ? (f.icon as any) : 'lock-closed'} size={16} color={hasAccess ? f.color : theme.textFaint} />
+                      <Ionicons name={hasAccess ? f.icon : 'lock-closed'} size={16} color={hasAccess ? f.color : theme.textFaint} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: hasAccess ? theme.text : theme.textFaint }} numberOfLines={1}>

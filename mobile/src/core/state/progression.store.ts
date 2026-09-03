@@ -146,7 +146,7 @@ function scheduleRetry() {
 }
 
 /**
- * Vidée la file d'attente, opération par opération, dans l'ordre.
+ * Vide la file d'attente, opération par opération, dans l'ordre.
  * Retourne true si la file est vide à la fin. Single-flight : les appels
  * concurrents partagent la même exécution.
  */

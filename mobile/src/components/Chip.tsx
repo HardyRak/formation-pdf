@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { styles } from './Chip.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme, radius } from '../core/theme/theme';
+import { useTheme } from '../core/theme/theme';
 
 interface Props {
   label: string;

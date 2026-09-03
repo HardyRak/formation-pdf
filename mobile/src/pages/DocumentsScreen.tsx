@@ -4,12 +4,13 @@ import { styles } from './DocumentsScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useTheme, spacing, radius } from '../core/theme/theme';
+import { useTheme, spacing } from '../core/theme/theme';
 import { ScreenHeader, ProgressBar, LoadingState, MessageState, Chip, AnimatedCard, SummaryCard } from '../components';
 import { documentStore, useDocumentStore } from '../core/state/document.store';
 import { levelStore, useLevelStore } from '../core/state/level.store';
 import { formationStore } from '../core/state/formation.store';
 import { progressionStore, useProgressionStore } from '../core/state/progression.store';
+import type { DocumentProgress, TrainingDocument } from '../core/models';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Documents'>;
@@ -92,6 +93,7 @@ export function DocumentsScreen({ route, navigation }: Props) {
             item={item}
             index={index}
             accent={accent}
+            progress={progressionStore.documentProgress(item.id)}
             onPress={() => navigation.navigate('Reader', { documentId: item.id })}
           />
         )}
@@ -104,15 +106,16 @@ function DocumentRow({
   item,
   index,
   accent,
+  progress,
   onPress,
 }: {
-  item: { id: string; title: string; description: string; pageCount: number; sizeKb: number };
+  item: TrainingDocument;
   index: number;
   accent: string;
+  progress: DocumentProgress | null;
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const progress = progressionStore.documentProgress(item.id);
   const percent = progress?.percent ?? 0;
   const status: 'new' | 'done' | 'reading' = !progress ? 'new' : progress.completed ? 'done' : 'reading';
 

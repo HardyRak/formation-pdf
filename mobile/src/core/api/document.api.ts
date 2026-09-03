@@ -1,5 +1,5 @@
 import type { PdfPage, PdfStreamResult, TrainingDocument } from '../models';
-import { httpClient } from './http-client';
+import { httpClient, type BinaryResult } from './http-client';
 import { bytesToUtf8 } from '../utils/binary';
 import { API_MODE } from '../config/env';
 
@@ -18,7 +18,7 @@ export const documentApi = {
    */
   stream: async (documentId: string): Promise<PdfStreamResult> => {
     // En mode mock, le backend simulé renvoie toujours des blocs (JSON).
-    const result = await httpClient.getBinary(`/documents/${documentId}/stream`);
+    const result: BinaryResult = await httpClient.getBinary(`/documents/${documentId}/stream`);
 
     if (API_MODE !== 'mock' && result.contentType && !JSON_MIME.test(result.contentType)) {
       return { kind: 'pdf', bytes: result.bytes, pageCount: 0 };

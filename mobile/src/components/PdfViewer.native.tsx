@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Pdf from 'react-native-pdf';
 import { pdfDataUri } from '../core/utils/binary';
@@ -22,11 +22,6 @@ export interface PdfViewerProps {
 export function PdfViewer({ bytes, pageCount, currentPage, accent, onPageChanged }: PdfViewerProps) {
   const source = useMemo(() => ({ uri: pdfDataUri(bytes) }), [bytes]);
 
-  const handlePageChanged = useCallback(
-    (page: number) => onPageChanged(page),
-    [onPageChanged],
-  );
-
   return (
     <View style={styles.container}>
       <Pdf
@@ -37,7 +32,7 @@ export function PdfViewer({ bytes, pageCount, currentPage, accent, onPageChanged
         renderActivityIndicator={() => (
           <ActivityIndicator size="large" color={accent} />
         )}
-        onPageChanged={handlePageChanged}
+        onPageChanged={onPageChanged}
         onError={(err) => {
           // eslint-disable-next-line no-console
           console.warn('[PdfViewer] erreur de rendu PDF', err);

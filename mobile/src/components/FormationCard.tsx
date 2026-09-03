@@ -41,7 +41,7 @@ export function FormationCard({ formation, percent, index, locked = false, onPre
         ) : null}
         <View style={styles.top}>
           <View style={[styles.icon, locked ? styles.iconLocked : null, { backgroundColor: formation.color + (theme.mode === 'dark' ? '2E' : '18') }]}>
-            <Ionicons name={locked ? 'lock-closed' : (formation.icon as any)} size={26} color={locked ? theme.textFaint : formation.color} />
+            <Ionicons name={locked ? 'lock-closed' : formation.icon} size={26} color={locked ? theme.textFaint : formation.color} />
           </View>
           <View style={{ flex: 1, gap: 4 }}>
             <View style={styles.titleRow}>
