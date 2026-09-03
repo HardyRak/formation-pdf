@@ -25,6 +25,14 @@ export class User {
   @Prop({ required: true })
   lastName!: string;
 
+  /**
+   * Nom complet dérivé (`firstName lastName`), utile pour la recherche plein
+   * texte du back-office. Optionnel pour rester compatible avec les comptes
+   * créés avant ce champ ; il est renseigné à la création/mise à jour.
+   */
+  @Prop({ type: String, default: '' })
+  fullName!: string;
+
   @Prop({ required: true, enum: ['LEARNER', 'MANAGER'] })
   role!: 'LEARNER' | 'MANAGER';
 

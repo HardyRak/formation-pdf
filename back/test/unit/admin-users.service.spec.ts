@@ -15,9 +15,18 @@ interface FakeQuery {
  * `find(filter).sort().skip().limit().lean()` et `countDocuments(filter)`.
  */
 class FakeUsersModel {
-  constructor(private readonly rows: Row[]) {}
+  constructor(public readonly rows: Row[]) {}
 
   private matches(row: Row, filter: Record<string, unknown>): boolean {
+    for (const [key, value] of Object.entries(filter)) {
+      if (key.startsWith('$')) continue;
+      if (typeof value === 'object' && value !== null && '$ne' in (value as object)) {
+        const ne = (value as { $ne?: unknown }).$ne;
+        if (row[key] === ne) return false;
+      } else if (row[key] !== value) {
+        return false;
+      }
+    }
     if (filter.role !== undefined && row.role !== filter.role) return false;
 
     const or = filter.$or as Record<string, RegExp>[] | undefined;
@@ -63,6 +72,27 @@ class FakeUsersModel {
 
   async countDocuments(filter: Record<string, unknown> = {}): Promise<number> {
     return this.match(filter).length;
+  }
+
+  async create(doc: Row): Promise<Row> {
+    this.rows.push(doc);
+    return doc;
+  }
+
+  findOne(filter: Record<string, unknown> = {}) {
+    const row = this.match(filter)[0];
+    return { lean: () => Promise.resolve(row ?? null) };
+  }
+
+  findById(id: string) {
+    const row = this.rows.find((r) => r._id === id);
+    return { lean: () => Promise.resolve(row ?? null) };
+  }
+
+  async updateOne(filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) {
+    const row = this.rows.find((r) => r._id === filter._id);
+    if (row) Object.assign(row, update.$set);
+    return { modifiedCount: row ? 1 : 0 };
   }
 }
 
@@ -129,6 +159,41 @@ describe('AdminUsersService.listUsers', () => {
     const list = await service.listUsers({ q: 'sophie mar', page: 1, limit: 10 });
 
     expect(list.items.map((u) => u.id)).toEqual(['usr-martin']);
+  });
+
+  it('recherche aussi via fullName (comptes récents)', async () => {
+    const smith = base('usr-smith', 10, {
+      firstName: '',
+      lastName: '',
+      fullName: 'Sophie Martin',
+    });
+    const service = new AdminUsersService(new FakeUsersModel([...rows, smith]) as never);
+    const list = await service.listUsers({ q: 'sophie martin', page: 1, limit: 10 });
+
+    expect(list.items.map((u) => u.id)).toEqual(['usr-smith']);
+  });
+
+  it('renseigne fullName à la création', async () => {
+    const model = new FakeUsersModel([...rows]);
+    const service = new AdminUsersService(model as never);
+    const created = await service.createUser({
+      email: 'jean.dupont@x.io',
+      password: 'password123',
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      role: 'LEARNER',
+    });
+
+    expect(model.rows.some((r) => r._id === created.id && r.fullName === 'Jean Dupont')).toBe(true);
+  });
+
+  it('recalcule fullName quand le prénom change', async () => {
+    const model = new FakeUsersModel([...rows]);
+    const service = new AdminUsersService(model as never);
+    await service.updateUser('usr-a', { firstName: 'Jean' });
+
+    const updated = model.rows.find((r) => r._id === 'usr-a');
+    expect(updated?.fullName).toBe('Jean Test');
   });
 
   it('ne renvoie jamais passwordHash', async () => {
