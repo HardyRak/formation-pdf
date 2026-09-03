@@ -6,7 +6,7 @@ import type { Express } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/api-exception.filter';
-import { ensureUploadDir } from './admin/uploads';
+import { ensureUploadDir } from './common/uploads';
 
 // Capture des rejets asynchrones et exceptions non interceptées avec NestJS Logger
 const systemLogger = new Logger('System');
