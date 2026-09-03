@@ -17,18 +17,28 @@ interface FakeQuery {
 class FakeUsersModel {
   constructor(private readonly rows: Row[]) {}
 
+  private matches(row: Row, filter: Record<string, unknown>): boolean {
+    if (filter.role !== undefined && row.role !== filter.role) return false;
+
+    const or = filter.$or as Record<string, RegExp>[] | undefined;
+    if (or) {
+      const ok = or.some((clause) =>
+        Object.entries(clause).some(([field, re]) => re.test(String(row[field] ?? ''))),
+      );
+      if (!ok) return false;
+    }
+
+    const and = filter.$and as Record<string, unknown>[] | undefined;
+    if (and) {
+      const ok = and.every((clause) => this.matches(row, clause));
+      if (!ok) return false;
+    }
+
+    return true;
+  }
+
   private match(filter: Record<string, unknown>): Row[] {
-    return this.rows.filter((row) => {
-      if (filter.role !== undefined && row.role !== filter.role) return false;
-      const or = filter.$or as Record<string, RegExp>[] | undefined;
-      if (or) {
-        const ok = or.some((clause) =>
-          Object.entries(clause).some(([field, re]) => re.test(String(row[field] ?? ''))),
-        );
-        if (!ok) return false;
-      }
-      return true;
-    });
+    return this.rows.filter((row) => this.matches(row, filter));
   }
 
   find(filter: Record<string, unknown> = {}): FakeQuery {
@@ -108,6 +118,17 @@ describe('AdminUsersService.listUsers', () => {
 
     const searched = await service.listUsers({ q: 'usr-b', page: 1, limit: 10 });
     expect(searched.items.map((u) => u.id)).toEqual(['usr-b']);
+  });
+
+  it('recherche multi-mots sur prénom + nom (sophie mar → sophie martin)', async () => {
+    const martin = base('usr-martin', 10, {
+      firstName: 'Sophie',
+      lastName: 'Martin',
+    });
+    const service = new AdminUsersService(new FakeUsersModel([...rows, martin]) as never);
+    const list = await service.listUsers({ q: 'sophie mar', page: 1, limit: 10 });
+
+    expect(list.items.map((u) => u.id)).toEqual(['usr-martin']);
   });
 
   it('ne renvoie jamais passwordHash', async () => {

@@ -50,8 +50,16 @@ export class AdminUsersService {
       filter.role = options.role;
     }
     if (options.q) {
-      const re = this.searchRegex(options.q);
-      filter.$or = [{ email: re }, { firstName: re }, { lastName: re }, { company: re }];
+      // Recherche multi-mots : « sophie mar » doit matcher Sophie Martin
+      // (prénom + nom séparés). Chaque terme cherche dans email, prénom, nom
+      // ou société ; tous les termes doivent correspondre.
+      const terms = options.q.trim().split(/\s+/).filter(Boolean);
+      if (terms.length > 0) {
+        filter.$and = terms.map((term) => {
+          const re = this.searchRegex(term);
+          return { $or: [{ email: re }, { firstName: re }, { lastName: re }, { company: re }] };
+        });
+      }
     }
 
     // Pagination explicite (dashboard) : count + fenêtre skip/limit.
