@@ -30,7 +30,33 @@ export class AdminAccessService {
   ) {}
 
   async listGrants(userId?: string): Promise<AnyDoc[]> {
-    return this.access.listGrants(userId);
+    const grants = await this.access.listGrants(userId);
+
+    const userIds = Array.from(new Set(grants.map((g) => String(g.userId))));
+    const formationIds = Array.from(new Set(grants.map((g) => String(g.formationId))));
+
+    // Libellés en lot, sans requête par élément (évite le N+1 au back-office).
+    const [users, formations] = await Promise.all([
+      userIds.length > 0 ? this.users.find({ _id: { $in: userIds } }).lean() : [],
+      formationIds.length > 0 ? this.formations.find({ _id: { $in: formationIds } }).lean() : [],
+    ]);
+
+    const userMap = new Map<string, AnyDoc>();
+    for (const u of users as AnyDoc[]) userMap.set(String(u._id), u);
+    const formationMap = new Map<string, AnyDoc>();
+    for (const f of formations as AnyDoc[]) formationMap.set(String(f._id), f);
+
+    return grants.map((grant) => {
+      const user = userMap.get(String(grant.userId));
+      const formation = formationMap.get(String(grant.formationId));
+      return {
+        ...grant,
+        userName: user
+          ? `${String(user.firstName ?? '')} ${String(user.lastName ?? '')}`.trim()
+          : undefined,
+        formationName: formation ? String(formation.name ?? '') : undefined,
+      };
+    });
   }
 
   async grantDocument(

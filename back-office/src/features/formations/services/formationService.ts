@@ -7,13 +7,11 @@ export const formationService = {
   list: async (): Promise<FormationDto[]> =>
     withIds<FormationDto>(await api.get<RawDoc[]>('/admin/formations')),
 
-  search: async (q: string): Promise<FormationDto[]> =>
-    withIds<FormationDto>(await api.get<RawDoc[]>(`/admin/formations?q=${encodeURIComponent(q)}`)),
-
-  listByIds: async (ids: string[]): Promise<FormationDto[]> =>
-    withIds<FormationDto>(
-      await api.get<RawDoc[]>(`/admin/formations?ids=${encodeURIComponent(ids.join(','))}`),
-    ),
+  search: async (q: string, limit = 5): Promise<FormationDto[]> => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (q) qs.set('q', q);
+    return withIds<FormationDto>(await api.get<RawDoc[]>(`/admin/formations?${qs.toString()}`));
+  },
 
   create: (body: Partial<FormationDto>) => api.post<FormationDto>('/admin/formations', body),
 

@@ -4,11 +4,10 @@ import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { accessService } from '../services/accessService';
 
 /**
- * Recherche d'utilisateurs côté serveur pour le select « Utilisateur ».
+ * Utilisateurs du select « Utilisateur », chargés côté serveur.
  *
- * - La saisie est debouncée avant d'atteindre `/v1/admin/users?q=…`.
- * - Sans terme, la requête est désactivée : la page affiche alors sa liste de
- *   base (déjà chargée pour résoudre les noms des attributions).
+ * - Au premier affichage : les 5 premiers utilisateurs (`limit=5`).
+ * - À la saisie : recherche `/v1/admin/users?q=…`, toujours limitée à 5.
  */
 export function useUserSearch() {
   const [search, setSearchState] = useState('');
@@ -16,8 +15,7 @@ export function useUserSearch() {
 
   const query = useQuery({
     queryKey: ['user-search', debouncedSearch],
-    queryFn: () => accessService.listUsers({ q: debouncedSearch }),
-    enabled: debouncedSearch.trim().length > 0,
+    queryFn: () => accessService.listUsers({ q: debouncedSearch || undefined, limit: 5 }),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

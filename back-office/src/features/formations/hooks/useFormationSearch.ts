@@ -4,10 +4,10 @@ import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { formationService } from '../services/formationService';
 
 /**
- * Recherche de formations côté serveur pour le select « Formation ».
+ * Formations du select « Formation », chargées côté serveur.
  *
- * - Saisie debouncée avant `/v1/admin/formations?q=…`.
- * - Sans terme, la requête est désactivée : la page affiche sa liste de base.
+ * - Au premier affichage : les 5 premières formations (`limit=5`).
+ * - À la saisie : recherche `/v1/admin/formations?q=…`, toujours limitée à 5.
  */
 export function useFormationSearch() {
   const [search, setSearchState] = useState('');
@@ -15,8 +15,7 @@ export function useFormationSearch() {
 
   const query = useQuery({
     queryKey: ['formation-search', debouncedSearch],
-    queryFn: () => formationService.search(debouncedSearch),
-    enabled: debouncedSearch.trim().length > 0,
+    queryFn: () => formationService.search(debouncedSearch, 5),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

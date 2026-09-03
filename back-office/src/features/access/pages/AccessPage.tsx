@@ -13,12 +13,10 @@ import {
   Select,
 } from '@/shared/components';
 import { useFormationSearch } from '@/features/formations/hooks/useFormationSearch';
-import { useFormationTitles } from '@/features/formations/hooks/useFormationTitles';
 import { useLevels } from '@/features/formations/hooks/useLevels';
 import { useDocuments } from '@/features/formations/hooks/useDocuments';
 import { useGrants } from '../hooks/useGrants';
 import { useUserSearch } from '../hooks/useUserSearch';
-import { useUserTitles } from '../hooks/useUserTitles';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
@@ -49,24 +47,17 @@ export function AccessPage() {
 
   // Valeurs dérivées (pas de useEffect : dérivation pure).
   const userSearchActive = userSearch.search.trim().length > 0;
-  const userOptions = userSearchActive
-    ? userSearch.users.map((u) => ({
-        value: u.id,
-        label: `${u.firstName} ${u.lastName} (${u.email})`,
-      }))
-    : [];
+  const userOptions = userSearch.users.map((u) => ({
+    value: u.id,
+    label: `${u.firstName} ${u.lastName} (${u.email})`,
+  }));
+  const userNames: Record<string, string> = {};
+  for (const u of userSearch.users) userNames[u.id] = `${u.firstName} ${u.lastName}`;
 
   const formationSearchActive = formationSearch.search.trim().length > 0;
-  const formationOptions = formationSearchActive
-    ? formationSearch.formations.map((f) => ({ value: f.id, label: f.name }))
-    : [];
-
-  // Libellés des utilisateurs / formations référencés par les attributions,
-  // résolus en lot (un appel avec `ids` pour ne jamais charger toute la base).
-  const grantedUserIds = grants.map((g) => g.userId);
-  const grantedFormationIds = grants.map((g) => g.formationId);
-  const userNames = useUserTitles(grantedUserIds);
-  const formationNames = useFormationTitles(grantedFormationIds);
+  const formationOptions = formationSearch.formations.map((f) => ({ value: f.id, label: f.name }));
+  const formationNames: Record<string, string> = {};
+  for (const f of formationSearch.formations) formationNames[f.id] = f.name;
 
   // Titres des documents référencés par les grants (pour libeller la révocation).
   const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
@@ -221,8 +212,8 @@ export function AccessPage() {
               return (
                 <ListRow
                   key={grant._id}
-                  title={userNames[grant.userId] ?? grant.userId}
-                  subtitle={formationNames[grant.formationId] ?? grant.formationId}
+                  title={grant.userName ?? userNames[grant.userId] ?? grant.userId}
+                  subtitle={grant.formationName ?? formationNames[grant.formationId] ?? grant.formationId}
                   badges={
                     <>
                       {hasFullLevels ? (

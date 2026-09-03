@@ -20,12 +20,10 @@ export interface CreateUserInput {
   avatarColor?: string;
 }
 
-/** Options de listage : recherche, filtre rôle, ids, pagination optionnelle. */
+/** Options de listage : recherche, filtre rôle, pagination optionnelle. */
 export interface ListUsersOptions {
   q?: string;
   role?: string;
-  /** Ids séparés par des virgules (résolution des libellés en lot). */
-  ids?: string;
   /** Page 1-based. Fourni (avec `limit`) ⇒ réponse paginée. */
   page?: number;
   limit?: number;
@@ -54,13 +52,6 @@ export class AdminUsersService {
     if (options.q) {
       const re = this.searchRegex(options.q);
       filter.$or = [{ email: re }, { firstName: re }, { lastName: re }, { company: re }];
-    }
-    if (options.ids?.trim()) {
-      const ids = options.ids
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean);
-      if (ids.length > 0) filter._id = { $in: ids };
     }
 
     // Pagination explicite (dashboard) : count + fenêtre skip/limit.

@@ -16,8 +16,7 @@ import { Type } from 'class-transformer';
 
 /**
  * Query de listage des utilisateurs (admin) : recherche plein texte + filtre
- * rôle + pagination optionnelle (sans `page`/`limit`, toute la liste est
- * renvoyée — comportement historique attendu par les selects du back-office).
+ * rôle + pagination optionnelle.
  */
 export class ListUsersQueryDto {
   @IsOptional()
@@ -28,12 +27,6 @@ export class ListUsersQueryDto {
   @IsOptional()
   @IsIn(['LEARNER', 'MANAGER'])
   role?: 'LEARNER' | 'MANAGER';
-
-  /** Identifiants séparés par des virgules (résolution des libellés en lot). */
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  ids?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -49,18 +42,19 @@ export class ListUsersQueryDto {
   limit?: number;
 }
 
-/** Query de listage des formations (admin) : recherche `q` sur le nom. */
+/** Query de listage des formations (admin) : recherche `q` + limite. */
 export class ListFormationsQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(80)
   q?: string;
 
-  /** Identifiants séparés par des virgules (résolution des libellés en lot). */
   @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  ids?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }
 
 /**

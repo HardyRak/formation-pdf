@@ -73,6 +73,9 @@ export interface AccessGrantDto {
   formationId: string;
   levelIds: string[];
   documentIds: string[];
+  /** Libellés fournis par l'API admin (évitent une requête par id côté front). */
+  userName?: string;
+  formationName?: string;
 }
 
 export interface AdminList<T> {
