@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,11 @@ import {
   ActivityIndicator,
   ScrollView,
   useWindowDimensions,
-  Modal,
   BackHandler,
-  type DimensionValue,
 } from 'react-native';
 import { styles } from './PdfReaderScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { spacing } from '../core/theme/theme';
@@ -23,6 +19,10 @@ import { READER } from '../core/theme/design-tokens';
 import { MessageState } from '../components/StateViews';
 import { PdfPageView } from '../components/PdfPageView';
 import { PdfViewer } from '../components/PdfViewer';
+import { ReaderTopBar } from '../components/ReaderTopBar';
+import { ReaderToolbar } from '../components/ReaderToolbar';
+import { OutlineSheet } from '../components/OutlineSheet';
+import { ResumeToast } from '../components/ResumeToast';
 import { pdfReaderStore, usePdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
 import { useProgressionStore } from '../core/state/progression.store';
 import { formationStore } from '../core/state/formation.store';
@@ -33,6 +33,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Reader'>;
 
 const PAGE_GAP = 14;
 
+/**
+ * Écran de lecture sécurisée d'un document (PDF binaire ou blocs structurés).
+ * Rôle : orchestration (état, effets, navigation, progression). Le chrome est
+ * délégué à `ReaderTopBar` / `ReaderToolbar` / `OutlineSheet` / `ResumeToast`.
+ */
 export function PdfReaderScreen({ route, navigation }: Props) {
   const { documentId } = route.params;
   const { width, height } = useWindowDimensions();
@@ -88,7 +93,6 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const basePageWidth = Math.min(width - 24, 560);
   const pageWidth = Math.round(basePageWidth * zoom);
   const pageHeight = Math.round(pageWidth * 1.414);
-  const viewportWidth = Math.min(width, pageWidth + 24);
 
   const getItemLayout = useCallback(
     (_data: unknown, index: number) => ({
@@ -127,19 +131,14 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   );
 
   // Conserve la page courante lors d'un changement de zoom (mode blocs).
-  useEffect(() => {
+  // `getItemLayout` fournit les offsets sans mesurer : le scroll est fiable
+  // immédiatement (layout effect), aucun timer nécessaire.
+  useLayoutEffect(() => {
     if (isPdf || state.status !== 'success') return;
     const index = Math.max(0, state.currentPage - 1);
-    const timer = setTimeout(() => listRef.current?.scrollToIndex({ index, animated: false }), 30);
-    return () => clearTimeout(timer);
+    listRef.current?.scrollToIndex({ index, animated: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.zoomIndex]);
-
-  const progress = state.document ? progression.documents[state.document.id] ?? null : null;
-  const percent = progress?.percent ?? 0;
-  const chromeVisible = !state.fullscreen;
-  // Un document refusé car trop volumineux ne sera pas plus lisible au rejeu.
-  const canRetry = state.error?.code !== 'DOCUMENT_TOO_LARGE';
+  }, [pageHeight, isPdf, state.status]);
 
   /** Lignes du sommaire : libellé dérivé une seule fois par lot de pages. */
   const outlineEntries = useMemo(
@@ -154,6 +153,12 @@ export function PdfReaderScreen({ route, navigation }: Props) {
     [state.pages],
   );
 
+  const progress = state.document ? progression.documents[state.document.id] ?? null : null;
+  const percent = progress?.percent ?? 0;
+  const chromeVisible = !state.fullscreen;
+  // Un document refusé car trop volumineux ne sera pas plus lisible au rejeu.
+  const canRetry = state.error?.code !== 'DOCUMENT_TOO_LARGE';
+
   const close = () => {
     navigation.goBack();
   };
@@ -163,44 +168,15 @@ export function PdfReaderScreen({ route, navigation }: Props) {
       <StatusBar style={'light'} hidden={state.fullscreen} />
 
       {chromeVisible ? (
-        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)}>
-          <SafeAreaView edges={['top']} style={{ backgroundColor: READER.chrome }}>
-            <View style={styles.topBar}>
-              <Pressable onPress={close} hitSlop={10} style={styles.iconBtn} accessibilityLabel={'Retour'}>
-                <Ionicons name={'chevron-back'} size={22} color={'#fff'} />
-              </Pressable>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.topTitle} numberOfLines={1}>
-                  {state.document?.title ?? 'Chargement\u2026'}
-                </Text>
-                <Text style={styles.topSubtitle} numberOfLines={1}>
-                  Lecture sécurisée • {percent}% lu
-                </Text>
-              </View>
-              {!isPdf ? (
-                <Pressable
-                  onPress={() => pdfReaderStore.toggleOutline()}
-                  hitSlop={10}
-                  style={styles.iconBtn}
-                  accessibilityLabel={'Sommaire'}
-                >
-                  <Ionicons name={'list'} size={20} color={'#fff'} />
-                </Pressable>
-              ) : null}
-              <Pressable
-                onPress={() => pdfReaderStore.toggleFullscreen()}
-                hitSlop={10}
-                style={styles.iconBtn}
-                accessibilityLabel={'Plein \u00e9cran'}
-              >
-                <Ionicons name={'expand'} size={19} color={'#fff'} />
-              </Pressable>
-            </View>
-            <View style={styles.topProgressTrack}>
-              <View style={[styles.topProgressFill, { width: `${percent}%` as DimensionValue, backgroundColor: accent }]} />
-            </View>
-          </SafeAreaView>
-        </Animated.View>
+        <ReaderTopBar
+          title={state.document?.title ?? 'Chargement\u2026'}
+          percent={percent}
+          accent={accent}
+          isPdf={isPdf}
+          onBack={close}
+          onToggleOutline={() => pdfReaderStore.toggleOutline()}
+          onToggleFullscreen={() => pdfReaderStore.toggleFullscreen()}
+        />
       ) : null}
 
       {state.status === 'loading' || state.status === 'idle' ? (
@@ -215,7 +191,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
             icon={'lock-closed-outline'}
             tone={'danger'}
             title={'Lecture impossible'}
-            message={state.error?.message ?? 'Le document n\u2019a pas pu \u00eatre charg\u00e9.'}
+            message={state.error?.message ?? 'Le document n\u2019a pas pu être chargé.'}
             actionLabel={canRetry ? 'Réessayer' : undefined}
             onAction={canRetry ? () => void pdfReaderStore.open(documentId) : undefined}
           />
@@ -294,12 +270,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
         </ScrollView>
       )}
 
-      {resumeToast ? (
-        <Animated.View entering={FadeInDown} exiting={FadeOut} style={[styles.toast, { borderColor: accent }]}>
-          <Ionicons name={'bookmark'} size={15} color={accent} />
-          <Text style={styles.toastText}>Reprise à la page {resumeToast}</Text>
-        </Animated.View>
-      ) : null}
+      {resumeToast ? <ResumeToast page={resumeToast} accent={accent} /> : null}
 
       {state.fullscreen ? (
         <Pressable
@@ -312,116 +283,35 @@ export function PdfReaderScreen({ route, navigation }: Props) {
       ) : null}
 
       {chromeVisible && state.status === 'success' ? (
-        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)} style={styles.bottomWrap}>
-          <SafeAreaView edges={['bottom']}>
-            <View style={styles.toolbar}>
-              <ToolbarButton
-                icon={'chevron-back'}
-                disabled={state.currentPage <= 1}
-                onPress={() => goToPage(state.currentPage - 1)}
-                label={'Page \u200bpr\u00e9c\u00e9dente'}
-              />
-              <View style={styles.pageBadge}>
-                <Text style={styles.pageBadgeText}>
-                  {state.currentPage} / {totalCount}
-                </Text>
-              </View>
-              <ToolbarButton
-                icon={'chevron-forward'}
-                disabled={state.currentPage >= totalCount}
-                onPress={() => goToPage(state.currentPage + 1)}
-                label={'Page suivante'}
-              />
-              {!isPdf ? (
-                <>
-                  <View style={styles.toolbarSep} />
-                  <ToolbarButton
-                    icon={'remove'}
-                    disabled={state.zoomIndex === 0}
-                    onPress={() => pdfReaderStore.zoomOut()}
-                    label={'Zoom arri\u00e8re'}
-                  />
-                  <Pressable onPress={() => pdfReaderStore.resetZoom()} style={styles.zoomBadge}>
-                    <Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text>
-                  </Pressable>
-                  <ToolbarButton
-                    icon={'add'}
-                    disabled={state.zoomIndex === ZOOM_STEPS.length - 1}
-                    onPress={() => pdfReaderStore.zoomIn()}
-                    label={'Zoom avant'}
-                  />
-                </>
-              ) : null}
-            </View>
-          </SafeAreaView>
-        </Animated.View>
+        <ReaderToolbar
+          currentPage={state.currentPage}
+          totalCount={totalCount}
+          isPdf={isPdf}
+          zoomPercent={Math.round(zoom * 100)}
+          canZoomOut={state.zoomIndex > 0}
+          canZoomIn={state.zoomIndex < ZOOM_STEPS.length - 1}
+          onPrev={() => goToPage(state.currentPage - 1)}
+          onNext={() => goToPage(state.currentPage + 1)}
+          onZoomOut={() => pdfReaderStore.zoomOut()}
+          onZoomIn={() => pdfReaderStore.zoomIn()}
+          onResetZoom={() => pdfReaderStore.resetZoom()}
+        />
       ) : null}
 
-      <Modal
+      <OutlineSheet
         visible={state.outlineVisible}
-        animationType={'slide'}
-        transparent
-        onRequestClose={() => pdfReaderStore.toggleOutline()}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => pdfReaderStore.toggleOutline()} />
-        <View style={[styles.sheet, { maxHeight: height * 0.7 }]}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>Sommaire</Text>
-          <FlatList
-            data={outlineEntries}
-            keyExtractor={(item) => `outline-${item.number}`}
-            contentContainerStyle={{ paddingBottom: spacing.xl }}
-            renderItem={({ item }) => {
-              const readMark = progress?.pagesRead.includes(item.number);
-              return (
-                <Pressable
-                  onPress={() => {
-                    pdfReaderStore.toggleOutline();
-                    setTimeout(() => scrollToPage(item.number, false), 120);
-                  }}
-                  style={({ pressed }) => [styles.outlineRow, { opacity: pressed ? 0.7 : 1 }]}
-                >
-                  <View
-                    style={[
-                      styles.outlineNum,
-                      { backgroundColor: item.number === state.currentPage ? accent : 'rgba(255,255,255,0.08)' },
-                    ]}
-                  >
-                    <Text style={styles.outlineNumText}>{item.number}</Text>
-                  </View>
-                  <Text style={styles.outlineLabel} numberOfLines={1}>
-                    {item.label}
-                  </Text>
-                  {readMark ? <Ionicons name={'checkmark-circle'} size={16} color={'#34D399'} /> : null}
-                </Pressable>
-              );
-            }}
-          />
-        </View>
-      </Modal>
+        entries={outlineEntries}
+        currentPage={state.currentPage}
+        pagesRead={progress?.pagesRead ?? []}
+        accent={accent}
+        maxHeight={height * 0.7}
+        onSelect={(page) => {
+          // La liste est montée sous le sheet : scroll immédiat, puis fermeture.
+          scrollToPage(page, false);
+          pdfReaderStore.toggleOutline();
+        }}
+        onClose={() => pdfReaderStore.toggleOutline()}
+      />
     </View>
-  );
-}
-
-function ToolbarButton({
-  icon,
-  onPress,
-  disabled,
-  label,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.toolBtn, { opacity: disabled ? 0.3 : pressed ? 0.6 : 1 }]}
-    >
-      <Ionicons name={icon} size={20} color={'#fff'} />
-    </Pressable>
   );
 }
