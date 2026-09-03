@@ -20,7 +20,7 @@ import { AdminUsersService } from './admin-users.service';
 import { AdminAccessService } from './admin-access.service';
 import { AdminCatalogService } from './admin-catalog.service';
 import { AdminStatsService } from './admin-stats.service';
-import { pdfMulterStorage } from './uploads';
+import { pdfMulterStorage } from '../common/uploads';
 import { ApiException } from '../common/api-exception';
 import {
   CreateCategoryDto,

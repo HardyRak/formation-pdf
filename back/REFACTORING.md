@@ -82,7 +82,6 @@ src/admin/
 ├── admin-catalog.service.ts # CRUD catalogue + import PDF + compteurs
 ├── admin-stats.service.ts   # agrégations du tableau de bord
 ├── pdf.util.ts              # computePdfFileMeta / removePdfFile
-├── uploads.ts               # storage Multer (volume)
 ├── manager.guard.ts         # garde rôle MANAGER
 └── dto.ts                   # DTOs de validation
 ```
@@ -91,6 +90,7 @@ Déplacement vers `common/` / `users/` (réellement partagé) :
 
 ```
 src/common/id.util.ts        # slug / escapeRegex / shortId
+src/common/uploads.ts        # storage Multer + résolution UPLOAD_DIR (admin, catalog, main)
 src/users/user.mapper.ts     # toUserDto (projection sûre, jamais passwordHash)
 ```
 

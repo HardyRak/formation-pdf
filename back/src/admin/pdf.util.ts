@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { PDFDocument } from 'pdf-lib';
 import type { PdfFileMeta } from './admin.types';
-import { getUploadDir } from './uploads';
+import { resolveInUploadDir } from '../common/uploads';
 
 /**
  * Calcule les métadonnées d'un fichier PDF importé (empreinte SHA-256, taille,
@@ -33,7 +33,9 @@ export async function computePdfFileMeta(
   try {
     const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
     return {
-      filePath: file.path,
+      // Contrat du schéma : chemin RELATIF à `UPLOAD_DIR` (nom généré par Multer).
+      // `file.path` contient le préfixe du dossier : ne jamais le stocker.
+      filePath: file.filename,
       originalFilename: file.originalname,
       mimeType: file.mimetype || 'application/pdf',
       sha256,
@@ -43,7 +45,7 @@ export async function computePdfFileMeta(
   } catch {
     // Fichier non-PDF ou corrompu : métadonnées conservées, pageCount = 0.
     return {
-      filePath: file.path,
+      filePath: file.filename,
       originalFilename: file.originalname,
       mimeType: file.mimetype || 'application/pdf',
       sha256,
@@ -59,8 +61,7 @@ export async function computePdfFileMeta(
  */
 export function removePdfFile(relativePath: string): void {
   try {
-    const dir = getUploadDir();
-    const absolute = `${dir.replace(/[/\\]+$/, '')}/${relativePath.replace(/[/\\]+$/, '')}`;
+    const absolute = resolveInUploadDir(relativePath);
     if (existsSync(absolute)) unlinkSync(absolute);
   } catch {
     // best effort

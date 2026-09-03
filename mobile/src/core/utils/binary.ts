@@ -8,16 +8,23 @@
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
+/**
+ * Taille de chunk d'encodage : MULTIPLE DE 3, sinon chaque chunk ajouterait un
+ * padding `=` intermédiaire → base64 invalide (donc PDF illisible) dès que
+ * l'entrée dépasse un chunk.
+ */
+const B64_CHUNK_SIZE = 0x8000 - (0x8000 % 3); // 32 766
+
 /** Convertit un tableau d'octets en chaîne base64 (standard, avec padding). */
 export function bytesToBase64(bytes: Uint8Array): string {
-  const chunkSize = 0x8000; // 32 Ko
-  let out = '';
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    const end = Math.min(offset + chunkSize, bytes.length);
-    const chunk = bytes.subarray(offset, end);
-    out += encodeChunk(chunk);
+  // Accumulation en parties puis join : une concaténation `out += …` croissante
+  // serait quadratique (copies répétées) sur les gros PDF.
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += B64_CHUNK_SIZE) {
+    const end = Math.min(offset + B64_CHUNK_SIZE, bytes.length);
+    parts.push(encodeChunk(bytes.subarray(offset, end)));
   }
-  return out;
+  return parts.join('');
 }
 
 function encodeChunk(bytes: Uint8Array): string {
@@ -97,9 +104,50 @@ export function bytesToUtf8(bytes: Uint8Array): string {
   return out;
 }
 
-/** Construit une chaîne `data:` pour un PDF à partir des octets. */
-export function pdfDataUri(bytes: Uint8Array): string {
-  return `data:application/pdf;base64,${bytesToBase64(bytes)}`;
+/** Chunk (octets) entre deux rendus de main lors de l'encodage async (multiple de 3). */
+const ASYNC_ENCODE_CHUNK = 0x80000 - (0x80000 % 3); // 524 286
+
+/** Redonne la main à la boucle d'événements (UI fluide pendant l'encodage). */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
+ * Construit ASYNCHRONE une chaîne `data:` pour un PDF : l'encodage base64 est
+ * découpé en chunks qui rendent la main entre eux, pour ne pas figer le thread
+ * principal (Hermes) pendant la préparation d'un PDF volumineux.
+ */
+export async function pdfDataUriAsync(bytes: Uint8Array): Promise<string> {
+  const parts: string[] = ['data:application/pdf;base64,'];
+  for (let offset = 0; offset < bytes.length; offset += ASYNC_ENCODE_CHUNK) {
+    const end = Math.min(offset + ASYNC_ENCODE_CHUNK, bytes.length);
+    parts.push(encodeChunk(bytes.subarray(offset, end)));
+    await tick();
+  }
+  return parts.join('');
+}
+
+/** En-tête magique d'un flux PDF (`%PDF-`). */
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d];
+
+/**
+ * Détecte si des octets sont bien un PDF (en-tête magique toléré dans les
+ * 1024 premiers octets, comme les lecteurs du marché). Évite de passer un
+ * contenu invalide (ex. JSON d'erreur) au renderer natif sans retour utilisateur.
+ */
+export function looksLikePdf(bytes: Uint8Array): boolean {
+  const lastStart = Math.min(bytes.length - PDF_MAGIC.length, 1024);
+  for (let start = 0; start <= lastStart; start++) {
+    let matched = true;
+    for (let i = 0; i < PDF_MAGIC.length; i++) {
+      if (bytes[start + i] !== PDF_MAGIC[i]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return true;
+  }
+  return false;
 }
 
 /** Encodage UTF-8 manuel (Hermes ne garantit pas `TextEncoder`). */

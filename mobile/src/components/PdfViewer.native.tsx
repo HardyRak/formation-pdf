@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Pdf from 'react-native-pdf';
-import { pdfDataUri } from '../core/utils/binary';
+import { pdfDataUriAsync } from '../core/utils/binary';
+import { READER } from '../core/theme/design-tokens';
 
 /**
  * Rendu natif d'un vrai PDF (iOS / Android) via `react-native-pdf`.
@@ -9,7 +10,11 @@ import { pdfDataUri } from '../core/utils/binary';
  * transite que par le flux authentifié.
  *
  * ⚠️ `react-native-pdf` est un module natif : nécessite un **development build**
- * (pas Expo Go). Il fournit `onPageChanged` → suivi de progression par page.
+ * (pas Expo Go). Il fournit `onPageChanged` / `onLoadComplete` → suivi de
+ * progression par page et nombre de pages réel.
+ *
+ * Toute erreur de rendu est remontée au parent (`onRenderError`) : l'écran
+ * affiche alors un état d'erreur avec retry, jamais un spinner infini.
  */
 export interface PdfViewerProps {
   bytes: Uint8Array;
@@ -17,10 +22,47 @@ export interface PdfViewerProps {
   currentPage: number;
   accent: string;
   onPageChanged: (page: number) => void;
+  /** Nombre de pages réel rapporté par le renderer (fait foi sur la métadonnée). */
+  onLoadedPageCount?: (count: number) => void;
+  /** Erreur de rendu : le parent bascule sur un état d'erreur explicite. */
+  onRenderError?: (message: string) => void;
 }
 
-export function PdfViewer({ bytes, pageCount, currentPage, accent, onPageChanged }: PdfViewerProps) {
-  const source = useMemo(() => ({ uri: pdfDataUri(bytes) }), [bytes]);
+export function PdfViewer({
+  bytes,
+  pageCount,
+  currentPage,
+  accent,
+  onPageChanged,
+  onLoadedPageCount,
+  onRenderError,
+}: PdfViewerProps) {
+  const [source, setSource] = useState<{ uri: string } | null>(null);
+
+  // Préparation base64 ASYNCNE et chunkée : l'encodage d'un gros PDF ne fige
+  // plus le thread principal (ni le premier rendu du viewer).
+  useEffect(() => {
+    let cancelled = false;
+    setSource(null);
+    pdfDataUriAsync(bytes)
+      .then((uri) => {
+        if (!cancelled) setSource({ uri });
+      })
+      .catch(() => {
+        if (!cancelled) onRenderError?.('Préparation du PDF impossible.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bytes, onRenderError]);
+
+  if (!source) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -28,14 +70,20 @@ export function PdfViewer({ bytes, pageCount, currentPage, accent, onPageChanged
         source={source}
         page={Math.min(Math.max(currentPage, 1), pageCount)}
         style={styles.pdf}
-        trustAllCerts
         renderActivityIndicator={() => (
           <ActivityIndicator size="large" color={accent} />
         )}
-        onPageChanged={onPageChanged}
+        onPageChanged={(page, total) => {
+          onPageChanged(page);
+          if (total > 0) onLoadedPageCount?.(total);
+        }}
+        onLoadComplete={(total) => {
+          if (total > 0) onLoadedPageCount?.(total);
+        }}
         onError={(err) => {
           // eslint-disable-next-line no-console
           console.warn('[PdfViewer] erreur de rendu PDF', err);
+          onRenderError?.(err?.message || 'Le PDF n’a pas pu être affiché.');
         }}
       />
     </View>
@@ -43,6 +91,6 @@ export function PdfViewer({ bytes, pageCount, currentPage, accent, onPageChanged
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0C0F1E' },
-  pdf: { flex: 1, backgroundColor: '#0C0F1E' },
+  container: { flex: 1, backgroundColor: READER.chrome },
+  pdf: { flex: 1, backgroundColor: READER.chrome },
 });

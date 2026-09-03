@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
+import { READER } from '../core/theme/design-tokens';
 
 /**
  * Rendu d'un vrai PDF sur **web** via le lecteur natif du navigateur
@@ -9,7 +10,8 @@ import { StyleSheet, View, Text } from 'react-native';
  * Limite connue : le lecteur natif du navigateur n'expose pas la page courante
  * au parent. Le suivi de progression sur web repose donc sur les contrôles
  * « page précédente / suivante » (qui appellent onPageChanged). Un rendu via
- * PDF.js permettrait un suivi de page précis (amélioration future).
+ * PDF.js permettrait un suivi de page précis (amélioration future) ;
+ * `onLoadedPageCount` n'est donc pas alimenté sur cette plateforme.
  */
 export interface PdfViewerProps {
   bytes: Uint8Array;
@@ -17,9 +19,13 @@ export interface PdfViewerProps {
   currentPage: number;
   accent: string;
   onPageChanged: (page: number) => void;
+  /** Non alimenté sur web (le lecteur natif n'expose pas le compte de pages). */
+  onLoadedPageCount?: (count: number) => void;
+  /** Erreur de rendu : le parent bascule sur un état d'erreur explicite. */
+  onRenderError?: (message: string) => void;
 }
 
-export function PdfViewer({ bytes, pageCount, currentPage }: PdfViewerProps) {
+export function PdfViewer({ bytes, pageCount, currentPage, onRenderError }: PdfViewerProps) {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export function PdfViewer({ bytes, pageCount, currentPage }: PdfViewerProps) {
   if (!url) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#9AA3C7' }}>Préparation du document…</Text>
+        <Text style={styles.centerText}>Préparation du document…</Text>
       </View>
     );
   }
@@ -43,6 +49,7 @@ export function PdfViewer({ bytes, pageCount, currentPage }: PdfViewerProps) {
         title: 'PDF',
         src: url,
         style: { width: '100%', height: '100%', border: 'none' },
+        onError: () => onRenderError?.('Le navigateur n’a pas pu afficher le PDF.'),
       })}
       <View style={styles.hint}>
         <Text style={styles.hintText}>Page {Math.min(currentPage, pageCount)} / {pageCount}</Text>
@@ -52,8 +59,9 @@ export function PdfViewer({ bytes, pageCount, currentPage }: PdfViewerProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0C0F1E' },
+  container: { flex: 1, backgroundColor: READER.chrome },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centerText: { color: READER.textMuted },
   hint: {
     position: 'absolute',
     bottom: 8,

@@ -24,6 +24,7 @@ export function DocumentsPage() {
   const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<{ id: string; message: string } | null>(null);
+  const [downloadError, setDownloadError] = useState<{ id: string; message: string } | null>(null);
 
   const close = () => {
     setAdding(false);
@@ -37,7 +38,15 @@ export function DocumentsPage() {
     });
   };
 
-  const handleDownload = (id: string, title: string) => void documentService.download(id, title);
+  const handleDownload = (id: string, title: string) => {
+    setDownloadError(null);
+    documentService.download(id, title).catch((e: unknown) =>
+      setDownloadError({
+        id,
+        message: (e as { message?: string }).message ?? 'Téléchargement impossible.',
+      }),
+    );
+  };
 
   const handleReplace = (id: string, file: File) =>
     replaceMutation.mutate(
@@ -113,6 +122,9 @@ export function DocumentsPage() {
                     ) : null}
                     {replaceError?.id === doc.id ? (
                       <span style={styles.rowError}>{replaceError.message}</span>
+                    ) : null}
+                    {downloadError?.id === doc.id ? (
+                      <span style={styles.rowError}>{downloadError.message}</span>
                     ) : null}
                     <ConfirmButton
                       variant="danger"

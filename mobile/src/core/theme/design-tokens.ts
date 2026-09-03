@@ -57,3 +57,14 @@ export const ALPHA = {
   /** Mode clair - visible */
   lightVisible: '55',
 } as const;
+
+/**
+ * Couleurs constantes du lecteur PDF (chrome immersif sombre,
+ * indépendant du scheme clair/sombre du reste de l'application).
+ */
+export const READER = {
+  /** Fond du chrome et de la zone de lecture du lecteur. */
+  chrome: '#0C0F1E',
+  /** Texte secondaire sur fond sombre du lecteur. */
+  textMuted: '#9AA3C7',
+} as const;

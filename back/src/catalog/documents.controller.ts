@@ -1,11 +1,10 @@
 import { Controller, Get, Param, Req, Res, UseGuards } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
-import { join } from 'path';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LevelAccessGuard, DocumentAccessGuard } from '../access/access.guard';
 import type { StreamDto, TrainingDocumentDto } from '../common/contracts';
+import { resolveInUploadDir } from '../common/uploads';
 import { CatalogService } from './catalog.service';
 
 /**
@@ -19,10 +18,7 @@ import { CatalogService } from './catalog.service';
  */
 @Controller()
 export class DocumentsController {
-  constructor(
-    private readonly catalog: CatalogService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly catalog: CatalogService) {}
 
   @Get('levels/:levelId/documents')
   @UseGuards(JwtAuthGuard, LevelAccessGuard)
@@ -52,31 +48,46 @@ export class DocumentsController {
       return;
     }
 
-    const uploadDir = this.config.get<string>('uploadDir') ?? 'uploads';
     const filePath = document.filePath;
-    const absolute = filePath ? join(uploadDir, filePath) : '';
+    if (filePath) {
+      let absolute = '';
+      try {
+        absolute = resolveInUploadDir(filePath);
+      } catch {
+        absolute = '';
+      }
 
-    if (filePath && existsSync(absolute)) {
-      const originalFilename = safeFilename(document.originalFilename || `${id}.pdf`);
-      res.setHeader('Content-Type', document.mimeType || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${originalFilename}"`);
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.status(200);
-      createReadStream(absolute)
-        .on('error', () => {
-          if (!res.headersSent) {
-            res.status(404).json({
-              status: 404,
-              code: 'NOT_FOUND',
-              message: 'Fichier introuvable.',
-            });
-          }
-        })
-        .pipe(res);
+      if (absolute && existsSync(absolute)) {
+        const originalFilename = safeFilename(document.originalFilename || `${id}.pdf`);
+        res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${originalFilename}"`);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.status(200);
+        createReadStream(absolute)
+          .on('error', () => {
+            if (!res.headersSent) {
+              res.status(404).json({
+                status: 404,
+                code: 'NOT_FOUND',
+                message: 'Fichier introuvable.',
+              });
+            }
+          })
+          .pipe(res);
+        return;
+      }
+
+      // Fichier déclaré mais absent du volume : erreur explicite. Un fallback
+      // silencieux ferait télécharger un contenu invalide à la place du PDF.
+      res.status(404).json({
+        status: 404,
+        code: 'NOT_FOUND',
+        message: 'Fichier PDF introuvable sur le serveur.',
+      });
       return;
     }
 
-    // Fallback : contenu structuré en blocs (ancien modèle).
+    // Fallback : contenu structuré en blocs (ancien modèle, sans fichier).
     const stream = await this.catalog.stream(id);
     const body: StreamDto = { documentId: stream.documentId, pages: stream.pages };
     res.status(200).json(body);

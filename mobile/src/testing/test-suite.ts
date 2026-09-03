@@ -6,6 +6,13 @@ import { catalogDb } from '../core/api/backend/catalog';
 import { handleRequest, decodeJwt, DEMO_CREDENTIALS, b64 } from '../core/api/backend/server';
 import { toApiError } from '../core/api/http-client';
 import { mergeProgressEntries } from '../core/utils/progression-merge';
+import {
+  base64ToBytes,
+  bytesToBase64,
+  looksLikePdf,
+  pdfDataUriAsync,
+  utf8ToBytes,
+} from '../core/utils/binary';
 import { ROUTE_NAMES } from '../navigation/routes';
 import type { AuthSession, DocumentProgress, Formation, Level, TrainingDocument } from '../core/models';
 
@@ -382,6 +389,62 @@ const cases: TestCase[] = [
       progressionStore.trackPage(documents[0], 2);
       equal(progressionStore.resumePage(documents[0].id), 2, 'Reprise non enregistr\u00e9e');
       progressionStore.resetDocument(documents[0].id);
+    },
+  },
+
+  // ---------------- Binaire (lecteur PDF) ----------------------
+  {
+    suite: 'Binaire',
+    name: 'base64 : aller-retour exact aux frontières de chunks',
+    run: () => {
+      const sizes = [0, 1, 2, 3, 4, 5, 32767, 32768, 32769, 65537];
+      for (const size of sizes) {
+        const bytes = new Uint8Array(size);
+        for (let i = 0; i < size; i++) bytes[i] = (i * 7 + (i >> 8)) & 0xff;
+        const encoded = bytesToBase64(bytes);
+        // Aucun padding `=` ailleurs qu'en fin de chaîne (chunks multiples de 3).
+        const padLen = encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0;
+        assert(
+          !encoded.slice(0, encoded.length - padLen).includes('='),
+          `Padding intermédiaire (taille ${size})`,
+        );
+        const decoded = base64ToBytes(encoded);
+        equal(decoded.length, size, `Longueur incorrecte pour la taille ${size}`);
+        const stride = Math.max(1, Math.floor(size / 64));
+        for (let i = 0; i < size; i += stride) {
+          if (decoded[i] !== bytes[i]) throw new Error(`Octet ${i} diffère (taille ${size})`);
+        }
+      }
+    },
+  },
+  {
+    suite: 'Binaire',
+    name: 'looksLikePdf : en-tête magique détecté, même décalé',
+    run: () => {
+      const header = utf8ToBytes('%PDF-1.7\n%test');
+      assert(looksLikePdf(header), 'En-tête valide non détecté');
+      const shifted = new Uint8Array(300 + header.length);
+      shifted.set(header, 300);
+      assert(looksLikePdf(shifted), 'En-tête décalé non détecté');
+      assert(!looksLikePdf(utf8ToBytes('{"status":404}')), 'JSON pris pour un PDF');
+      assert(!looksLikePdf(new Uint8Array(0)), 'Contenu vide pris pour un PDF');
+    },
+  },
+  {
+    suite: 'Binaire',
+    name: 'pdfDataUriAsync : data URI décodable en octets identiques',
+    run: async () => {
+      // Traverse plusieurs chunks d'encodage (32 Ko synchrone, 512 Ko async).
+      const bytes = new Uint8Array(600000);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 31) & 0xff;
+      const uri = await pdfDataUriAsync(bytes);
+      const prefix = 'data:application/pdf;base64,';
+      assert(uri.startsWith(prefix), 'Préfixe data URI invalide');
+      const decoded = base64ToBytes(uri.slice(prefix.length));
+      equal(decoded.length, bytes.length, 'Longueur incorrecte après encodage async');
+      for (let i = 0; i < bytes.length; i += 997) {
+        if (decoded[i] !== bytes[i]) throw new Error(`Octet ${i} diffère`);
+      }
     },
   },
 ];
