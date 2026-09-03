@@ -8,12 +8,17 @@ import {
   TrainingDocumentModel,
   TrainingDocumentSchema,
 } from '../catalog/document.schema';
+import {
+  DocumentProgress,
+  DocumentProgressSchema,
+} from '../progression/document-progress.schema';
 import { AccessModule } from '../access/access.module';
 import { AdminController } from './admin.controller';
 import { AdminUsersService } from './admin-users.service';
 import { AdminAccessService } from './admin-access.service';
 import { AdminCatalogService } from './admin-catalog.service';
 import { AdminStatsService } from './admin-stats.service';
+import { AdminProgressService } from './admin-progress.service';
 import { ManagerGuard } from './manager.guard';
 
 /**
@@ -25,7 +30,8 @@ import { ManagerGuard } from './manager.guard';
  *  - `AdminAccessService` : attribution / révocation des droits d'accès ;
  *  - `AdminCatalogService`: CRUD du catalogue (formations / niveaux / documents /
  *                           catégories) + import PDF ;
- *  - `AdminStatsService`  : agrégations du tableau de bord.
+ *  - `AdminStatsService`  : agrégations du tableau de bord ;
+ *  - `AdminProgressService` : avancement des apprenants par formation.
  */
 @Module({
   imports: [
@@ -35,6 +41,7 @@ import { ManagerGuard } from './manager.guard';
       { name: Category.name, schema: CategorySchema },
       { name: Level.name, schema: LevelSchema },
       { name: TrainingDocumentModel.name, schema: TrainingDocumentSchema },
+      { name: DocumentProgress.name, schema: DocumentProgressSchema },
     ]),
     AccessModule,
   ],
@@ -44,6 +51,7 @@ import { ManagerGuard } from './manager.guard';
     AdminAccessService,
     AdminCatalogService,
     AdminStatsService,
+    AdminProgressService,
     ManagerGuard,
   ],
   exports: [
@@ -51,6 +59,7 @@ import { ManagerGuard } from './manager.guard';
     AdminAccessService,
     AdminCatalogService,
     AdminStatsService,
+    AdminProgressService,
   ],
 })
 export class AdminModule {}

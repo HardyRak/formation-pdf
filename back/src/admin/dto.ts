@@ -12,6 +12,56 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * Query de listage des utilisateurs (admin) : recherche plein texte + filtre
+ * rôle + pagination optionnelle (sans `page`/`limit`, toute la liste est
+ * renvoyée — comportement historique attendu par les selects du back-office).
+ */
+export class ListUsersQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(['LEARNER', 'MANAGER'])
+  role?: 'LEARNER' | 'MANAGER';
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
+/**
+ * Query de l'avancement d'un apprenant : pagination optionnelle par fenêtre
+ * (`offset`/`limit`) pour le défilement infini du back-office. Sans paramètres,
+ * toutes les formations sont renvoyées.
+ */
+export class ListUserProgressQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
 
 /** Création d'un compte utilisateur (admin). */
 export class CreateUserDto {

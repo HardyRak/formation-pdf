@@ -20,6 +20,15 @@ export interface CreateUserInput {
   avatarColor?: string;
 }
 
+/** Options de listage : recherche, filtre rôle, pagination optionnelle. */
+export interface ListUsersOptions {
+  q?: string;
+  role?: string;
+  /** Page 1-based. Fourni (avec `limit`) ⇒ réponse paginée. */
+  page?: number;
+  limit?: number;
+}
+
 /**
  * CRUD des comptes utilisateurs (back-office, rôle MANAGER).
  *
@@ -35,13 +44,39 @@ export class AdminUsersService {
     @InjectModel(User.name) private readonly users: Model<UserDocument>,
   ) {}
 
-  async listUsers(query?: string, role?: string): Promise<AdminList<UserDto>> {
+  async listUsers(options: ListUsersOptions = {}): Promise<AdminList<UserDto>> {
     const filter: Record<string, unknown> = {};
-    if (role && (role === 'LEARNER' || role === 'MANAGER')) filter.role = role;
-    if (query) {
-      const re = this.searchRegex(query);
+    if (options.role && (options.role === 'LEARNER' || options.role === 'MANAGER')) {
+      filter.role = options.role;
+    }
+    if (options.q) {
+      const re = this.searchRegex(options.q);
       filter.$or = [{ email: re }, { firstName: re }, { lastName: re }, { company: re }];
     }
+
+    // Pagination explicite (dashboard) : count + fenêtre skip/limit.
+    if (options.page !== undefined && options.limit !== undefined) {
+      const page = Math.max(1, Math.floor(options.page));
+      const limit = Math.max(1, Math.floor(options.limit));
+      const [total, rows] = await Promise.all([
+        this.users.countDocuments(filter),
+        this.users
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+      ]);
+      return {
+        total,
+        items: rows.map((user) => toUserDto(user)),
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
+    }
+
+    // Comportement historique (selects du back-office) : toute la liste.
     const users = await this.users.find(filter).sort({ createdAt: -1 }).lean();
     return {
       total: users.length,

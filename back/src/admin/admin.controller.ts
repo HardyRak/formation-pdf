@@ -20,6 +20,7 @@ import { AdminUsersService } from './admin-users.service';
 import { AdminAccessService } from './admin-access.service';
 import { AdminCatalogService } from './admin-catalog.service';
 import { AdminStatsService } from './admin-stats.service';
+import { AdminProgressService } from './admin-progress.service';
 import { pdfMulterStorage } from '../common/uploads';
 import { ApiException } from '../common/api-exception';
 import {
@@ -30,6 +31,8 @@ import {
   CreateLevelDto,
   CreateUserDto,
   GrantAccessDto,
+  ListUserProgressQueryDto,
+  ListUsersQueryDto,
   SetActiveDto,
   UpdateCategoryDto,
   UpdateDocumentDto,
@@ -55,18 +58,28 @@ export class AdminController {
     private readonly access: AdminAccessService,
     private readonly catalog: AdminCatalogService,
     private readonly statsService: AdminStatsService,
+    private readonly progress: AdminProgressService,
   ) {}
 
   // ---- Utilisateurs --------------------------------------------------------
 
   @Get('users')
-  listUsers(@Query('q') q?: string, @Query('role') role?: string) {
-    return this.users.listUsers(q, role);
+  listUsers(@Query() query: ListUsersQueryDto) {
+    return this.users.listUsers(query);
   }
 
   @Get('users/:id')
   getUser(@Param('id') id: string) {
     return this.users.getUser(id);
+  }
+
+  /** Avancement d'un apprenant, agrégé par formation (dashboard back-office). */
+  @Get('users/:id/progress')
+  getUserProgress(
+    @Param('id') id: string,
+    @Query() query: ListUserProgressQueryDto,
+  ) {
+    return this.progress.learnerProgress(id, query);
   }
 
   @Post('users')

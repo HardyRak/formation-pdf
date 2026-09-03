@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import { Badge, Card, ProgressBar, QueryGate } from '@/shared/components';
+import type { UserDto } from '@/shared/types/api';
 import { useDashboard } from '../hooks/useDashboard';
 import { StatCard } from '../components/StatCard';
+import { LearnersCard } from '../components/LearnersCard';
+import { LearnerProgressModal } from '../components/LearnerProgressModal';
 import { styles } from './DashboardPage.styles';
 
 export function DashboardPage() {
   const { stats, formations } = useDashboard();
+  const [selectedLearner, setSelectedLearner] = useState<UserDto | null>(null);
 
   return (
     <QueryGate
@@ -39,7 +44,7 @@ export function DashboardPage() {
                 {s.perFormation.length === 0 ? (
                   <p style={styles.emptyText}>Aucun document encore importé.</p>
                 ) : (
-                  <div style={{ ...styles.sections, marginTop: 0, gap: '12px' }}>
+                  <div style={styles.rowsList}>
                     {s.perFormation.map((f) => {
                       const name =
                         formations.data?.find((x) => x.id === f.formationId)?.name ?? f.formationId;
@@ -61,7 +66,13 @@ export function DashboardPage() {
                   </div>
                 )}
               </Card>
+
+              <LearnersCard onSelect={setSelectedLearner} />
             </div>
+
+            {selectedLearner ? (
+              <LearnerProgressModal learner={selectedLearner} onClose={() => setSelectedLearner(null)} />
+            ) : null}
           </div>
         );
       }}
