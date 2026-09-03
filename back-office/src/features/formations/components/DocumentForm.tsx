@@ -108,7 +108,7 @@ export function DocumentForm({
         </FormGrid>
 
         <div style={{ marginTop: '14px' }}>
-          <Field label="Description (optionnel)">
+          <Field label="Description">
             <TextArea rows={2} {...register('description')} />
           </Field>
         </div>
