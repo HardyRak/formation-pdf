@@ -41,10 +41,13 @@ export function AccessPage() {
     revokeDocumentMutation,
   } = useGrants();
   const userSearch = useUserSearch();
+  const filterUserSearch = useUserSearch();
   const formationSearch = useFormationSearch();
 
   const [userId, setUserId] = useState('');
   const [selectedUserLabel, setSelectedUserLabel] = useState('');
+  const [filterUserId, setFilterUserId] = useState('');
+  const [selectedFilterUserLabel, setSelectedFilterUserLabel] = useState('');
   const [formationId, setFormationId] = useState('');
   const [selectedFormationLabel, setSelectedFormationLabel] = useState('');
   const [levelId, setLevelId] = useState('');
@@ -63,13 +66,23 @@ export function AccessPage() {
   const userNames: Record<string, string> = {};
   for (const u of userSearch.users) userNames[u.id] = `${u.firstName} ${u.lastName}`;
 
+  // Filtre des attributions par utilisateur (même composant/recherche que le
+  // formulaire d'octroi). La saisie est indépendante du champ « Utilisateur ».
+  const filterUserSearchActive = filterUserSearch.search.trim().length > 0;
+  const filterUserOptions = filterUserSearch.users.map((u) => ({
+    value: u.id,
+    label: `${u.firstName} ${u.lastName} (${u.email})`,
+  }));
+
   const formationSearchActive = formationSearch.search.trim().length > 0;
   const formationOptions = formationSearch.formations.map((f) => ({ value: f.id, label: f.name }));
   const formationNames: Record<string, string> = {};
   for (const f of formationSearch.formations) formationNames[f.id] = f.name;
 
-  // Titres des documents référencés par les grants (pour libeller la révocation).
-  const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
+  const filteredGrants = filterUserId ? grants.filter((g) => g.userId === filterUserId) : grants;
+
+  // Titres des documents référencés par les grants affichés (pour libeller la révocation).
+  const grantedDocIds = filteredGrants.flatMap((g) => g.documentIds ?? []);
   const documentTitles = useDocumentTitles(grantedDocIds);
 
   const handleUserChange = (value: string) => {
@@ -79,6 +92,15 @@ export function AccessPage() {
 
   const handleUserSelect = (option: { label: string }) => {
     setSelectedUserLabel(option.label);
+  };
+
+  const handleFilterUserChange = (value: string) => {
+    setFilterUserId(value);
+    if (!value) setSelectedFilterUserLabel('');
+  };
+
+  const handleFilterUserSelect = (option: { label: string }) => {
+    setSelectedFilterUserLabel(option.label);
   };
 
   const handleFormationChange = (value: string) => {
@@ -208,11 +230,36 @@ export function AccessPage() {
         </FormCard>
 
         <h3 style={styles.sectionTitle}>Attributions existantes</h3>
-        {grants.length === 0 ? (
-          <Empty label="Aucune attribution d'accès." />
+        <div style={styles.filter}>
+          <Field label="Filtrer par utilisateur">
+            <SearchSelect
+              value={filterUserId}
+              onChange={handleFilterUserChange}
+              onSelect={handleFilterUserSelect}
+              onSearch={filterUserSearch.setSearch}
+              selectedLabel={filterUserId ? selectedFilterUserLabel : undefined}
+              isLoading={filterUserSearch.isSearching}
+              searchError={
+                filterUserSearchActive && filterUserSearch.isError
+                  ? ((filterUserSearch.error as { message?: string }).message ?? 'Recherche impossible.')
+                  : null
+              }
+              placeholder="Tous les utilisateurs"
+              options={filterUserOptions}
+            />
+          </Field>
+        </div>
+        {filteredGrants.length === 0 ? (
+          <Empty
+            label={
+              filterUserId
+                ? "Aucune attribution d'accès pour cet utilisateur."
+                : "Aucune attribution d'accès."
+            }
+          />
         ) : (
           <div style={styles.list}>
-            {grants.map((grant) => {
+            {filteredGrants.map((grant) => {
               // Grants anciens (pré-migration) : champs tableau potentiellement absents.
               const levelIds = grant.levelIds ?? [];
               const documentIds = grant.documentIds ?? [];
