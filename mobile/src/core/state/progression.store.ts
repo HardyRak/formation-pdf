@@ -321,9 +321,11 @@ export const progressionStore = {
   },
 
   /** Enregistre la page consultée et met à jour tous les niveaux d'agrégation. */
-  trackPage(doc: TrainingDocument, page: number): void {
-    const safePage = Math.max(1, Math.min(page || 1, Math.max(1, doc.pageCount || 1)));
-    const pageCount = Math.max(1, doc.pageCount || 1);
+  trackPage(doc: TrainingDocument, page: number, totalPagesOverride?: number): void {
+    // Le renderer natif peut rapporter le vrai nombre de pages (métadonnée
+    // d'upload parfois divergente) : il fait alors foi pour le clamp.
+    const pageCount = Math.max(1, totalPagesOverride ?? (doc.pageCount || 1));
+    const safePage = Math.max(1, Math.min(page || 1, pageCount));
     const state = store.state();
     const existing = state.documents[doc.id];
     const pagesRead = new Set((existing?.pagesRead ?? []).filter((p) => p >= 1));

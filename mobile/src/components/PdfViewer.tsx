@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
+import { READER } from '../core/theme/design-tokens';
 
 /**
  * Variante générique de `PdfViewer` (utilisée si aucune variante de plateforme
@@ -12,12 +13,14 @@ export interface PdfViewerProps {
   currentPage: number;
   accent: string;
   onPageChanged: (page: number) => void;
+  onLoadedPageCount?: (count: number) => void;
+  onRenderError?: (message: string) => void;
 }
 
 export function PdfViewer(_props: PdfViewerProps) {
   return (
     <View style={styles.center}>
-      <Text style={{ color: '#9AA3C7' }}>
+      <Text style={styles.label}>
         Rendu PDF non disponible sur cette plateforme.
       </Text>
     </View>
@@ -26,4 +29,5 @@ export function PdfViewer(_props: PdfViewerProps) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  label: { color: READER.textMuted },
 });

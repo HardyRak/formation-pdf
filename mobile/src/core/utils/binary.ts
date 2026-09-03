@@ -102,6 +102,29 @@ export function pdfDataUri(bytes: Uint8Array): string {
   return `data:application/pdf;base64,${bytesToBase64(bytes)}`;
 }
 
+/** En-tête magique d'un flux PDF (`%PDF-`). */
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d];
+
+/**
+ * Détecte si des octets sont bien un PDF (en-tête magique toléré dans les
+ * 1024 premiers octets, comme les lecteurs du marché). Évite de passer un
+ * contenu invalide (ex. JSON d'erreur) au renderer natif sans retour utilisateur.
+ */
+export function looksLikePdf(bytes: Uint8Array): boolean {
+  const lastStart = Math.min(bytes.length - PDF_MAGIC.length, 1024);
+  for (let start = 0; start <= lastStart; start++) {
+    let matched = true;
+    for (let i = 0; i < PDF_MAGIC.length; i++) {
+      if (bytes[start + i] !== PDF_MAGIC[i]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return true;
+  }
+  return false;
+}
+
 /** Encodage UTF-8 manuel (Hermes ne garantit pas `TextEncoder`). */
 export function utf8ToBytes(text: string): Uint8Array {
   const out: number[] = [];

@@ -19,6 +19,7 @@ import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { spacing } from '../core/theme/theme';
+import { READER } from '../core/theme/design-tokens';
 import { MessageState } from '../components/StateViews';
 import { PdfPageView } from '../components/PdfPageView';
 import { PdfViewer } from '../components/PdfViewer';
@@ -30,7 +31,6 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reader'>;
 
-const CHROME_BG = '#0C0F1E';
 const PAGE_GAP = 14;
 
 export function PdfReaderScreen({ route, navigation }: Props) {
@@ -40,6 +40,10 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const progression = useProgressionStore();
   const listRef = useRef<FlatList>(null);
   const [resumeToast, setResumeToast] = useState<number | null>(null);
+  /** Erreur de rendu du renderer PDF (distincte de l'erreur de chargement). */
+  const [renderError, setRenderError] = useState<string | null>(null);
+  /** Force le remontage du renderer lors d'un retry (relance le rendu natif). */
+  const [renderAttempt, setRenderAttempt] = useState(0);
 
   // Protection renforcée pour le lecteur PDF : bloque capture même si App.tsx est modifié
   usePreventScreenCapture();
@@ -53,6 +57,8 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   }, [state.document]);
 
   useEffect(() => {
+    setRenderError(null);
+    setRenderAttempt(0);
     void pdfReaderStore.open(documentId);
     return () => pdfReaderStore.close();
   }, [documentId]);
@@ -133,17 +139,30 @@ export function PdfReaderScreen({ route, navigation }: Props) {
   const percent = progress?.percent ?? 0;
   const chromeVisible = !state.fullscreen;
 
+  /** Lignes du sommaire : libellé dérivé une seule fois par lot de pages. */
+  const outlineEntries = useMemo(
+    () =>
+      state.pages.map((page) => ({
+        number: page.number,
+        label:
+          page.blocks.find(
+            (b): b is { type: 'h1' | 'h2'; text: string } => b.type === 'h1' || b.type === 'h2',
+          )?.text ?? `Page ${page.number}`,
+      })),
+    [state.pages],
+  );
+
   const close = () => {
     navigation.goBack();
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: CHROME_BG }]}>
+    <View style={[styles.container, { backgroundColor: READER.chrome }]}>
       <StatusBar style={'light'} hidden={state.fullscreen} />
 
       {chromeVisible ? (
         <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)}>
-          <SafeAreaView edges={['top']} style={{ backgroundColor: CHROME_BG }}>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: READER.chrome }}>
             <View style={styles.topBar}>
               <Pressable onPress={close} hitSlop={10} style={styles.iconBtn} accessibilityLabel={'Retour'}>
                 <Ionicons name={'chevron-back'} size={22} color={'#fff'} />
@@ -199,16 +218,33 @@ export function PdfReaderScreen({ route, navigation }: Props) {
             onAction={() => void pdfReaderStore.open(documentId)}
           />
           <Pressable onPress={close} style={{ marginTop: spacing.md }}>
-            <Text style={{ color: '#9AA3C7', fontWeight: '700' }}>Retour aux documents</Text>
+            <Text style={{ color: READER.textMuted, fontWeight: '700' }}>Retour aux documents</Text>
           </Pressable>
+        </View>
+      ) : renderError ? (
+        <View style={[styles.center, { paddingHorizontal: spacing.lg }]}>
+          <MessageState
+            icon={'alert-circle-outline'}
+            tone={'danger'}
+            title={'Affichage impossible'}
+            message={renderError}
+            actionLabel={'Réessayer'}
+            onAction={() => {
+              setRenderError(null);
+              setRenderAttempt((attempt) => attempt + 1);
+            }}
+          />
         </View>
       ) : isPdf && state.pdfBytes ? (
         <PdfViewer
+          key={renderAttempt}
           bytes={state.pdfBytes}
           pageCount={state.pageCount}
           currentPage={state.currentPage}
           accent={accent}
           onPageChanged={(page) => pdfReaderStore.setPage(page)}
+          onLoadedPageCount={(count) => pdfReaderStore.applyRealPageCount(count)}
+          onRenderError={setRenderError}
         />
       ) : (
         <ScrollView
@@ -330,13 +366,10 @@ export function PdfReaderScreen({ route, navigation }: Props) {
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>Sommaire</Text>
           <FlatList
-            data={state.pages}
+            data={outlineEntries}
             keyExtractor={(item) => `outline-${item.number}`}
             contentContainerStyle={{ paddingBottom: spacing.xl }}
             renderItem={({ item }) => {
-              const heading = item.blocks.find(
-                (b): b is { type: 'h1' | 'h2'; text: string } => b.type === 'h1' || b.type === 'h2',
-              );
               const readMark = progress?.pagesRead.includes(item.number);
               return (
                 <Pressable
@@ -355,7 +388,7 @@ export function PdfReaderScreen({ route, navigation }: Props) {
                     <Text style={styles.outlineNumText}>{item.number}</Text>
                   </View>
                   <Text style={styles.outlineLabel} numberOfLines={1}>
-                    {heading?.text ?? `Page ${item.number}`}
+                    {item.label}
                   </Text>
                   {readMark ? <Ionicons name={'checkmark-circle'} size={16} color={'#34D399'} /> : null}
                 </Pressable>
