@@ -104,11 +104,6 @@ export function bytesToUtf8(bytes: Uint8Array): string {
   return out;
 }
 
-/** Construit une chaîne `data:` pour un PDF à partir des octets. */
-export function pdfDataUri(bytes: Uint8Array): string {
-  return `data:application/pdf;base64,${bytesToBase64(bytes)}`;
-}
-
 /** Chunk (octets) entre deux rendus de main lors de l'encodage async (multiple de 3). */
 const ASYNC_ENCODE_CHUNK = 0x80000 - (0x80000 % 3); // 524 286
 

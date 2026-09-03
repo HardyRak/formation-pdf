@@ -132,12 +132,12 @@ export function PdfReaderScreen({ route, navigation }: Props) {
 
   // Conserve la page courante lors d'un changement de zoom (mode blocs).
   // `getItemLayout` fournit les offsets sans mesurer : le scroll est fiable
-  // immédiatement (layout effect), aucun timer nécessaire.
+  // immédiatement (layout effect), aucun timer nécessaire. La page est lue
+  // dans le store (pas en closure) : le zoom ne dépend pas d'elle.
   useLayoutEffect(() => {
     if (isPdf || state.status !== 'success') return;
-    const index = Math.max(0, state.currentPage - 1);
+    const index = Math.max(0, pdfReaderStore.state().currentPage - 1);
     listRef.current?.scrollToIndex({ index, animated: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageHeight, isPdf, state.status]);
 
   /** Lignes du sommaire : libellé dérivé une seule fois par lot de pages. */
