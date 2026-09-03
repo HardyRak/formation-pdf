@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { dashboardService } from '../services/dashboardService';
 import { useDebouncedValue } from './useDebouncedValue';
@@ -8,19 +8,21 @@ export const LEARNERS_PAGE_SIZE = 5;
 /**
  * Liste paginée + recherche des apprenants (card du dashboard).
  *
- * - La saisie est debouncée avant d'atteindre l'API ;
- * - une nouvelle recherche ramène toujours à la page 1 ;
+ * - La saisie est debouncée avant d'atteindre l'API.
+ * - Une nouvelle recherche ramène à la page 1 : le reset se fait dans le
+ *   handler de saisie (une seule source d'événement), pas via un effet —
+ *   évite une requête intermédiaire « nouvelle recherche, ancienne page ».
  * - `keepPreviousData` évite le flash de chargement entre les pages.
  */
 export function useLearners() {
-  const [search, setSearch] = useState('');
+  const [search, setSearchState] = useState('');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search);
 
-  // Nouvelle recherche ⇒ reset de la page (dérivation d'état, pas de rendu intermédiaire).
-  useEffect(() => {
+  const setSearch = (value: string) => {
+    setSearchState(value);
     setPage(1);
-  }, [debouncedSearch]);
+  };
 
   const query = useQuery({
     queryKey: ['learners', debouncedSearch, page],

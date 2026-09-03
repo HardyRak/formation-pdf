@@ -77,13 +77,20 @@ export class AdminProgressService {
     const formationById = new Map(
       catalogFormations.map((f) => [String(f._id), f as AnyDoc]),
     );
+    // Un seul passage sur les documents (au lieu d'un filter par formation).
+    const docsByFormation = new Map<string, AnyDoc[]>();
+    for (const doc of catalogDocs as AnyDoc[]) {
+      const list = docsByFormation.get(String(doc.formationId));
+      if (list) list.push(doc);
+      else docsByFormation.set(String(doc.formationId), [doc]);
+    }
 
     const all = formationIds
       .map((formationId) =>
         buildFormationProgress({
           formationId,
           formation: formationById.get(formationId),
-          documents: catalogDocs.filter((d) => d.formationId === formationId),
+          documents: docsByFormation.get(formationId) ?? [],
           grant: grants.find((g) => String(g.formationId) === formationId),
           progressRows,
         }),

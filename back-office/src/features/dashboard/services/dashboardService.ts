@@ -12,9 +12,13 @@ export interface LearnersQuery {
 export const dashboardService = {
   getStats: () => api.get<StatsDto>('/admin/stats'),
 
-  /** Apprenants, paginés côté serveur (role=LEARNER + recherche `q`). */
+  /** Apprenants (role=LEARNER), paginés côté serveur + recherche `q`. */
   listLearners: (params: LearnersQuery) => {
-    const qs = new URLSearchParams({ page: String(params.page), limit: String(params.limit) });
+    const qs = new URLSearchParams({
+      role: 'LEARNER',
+      page: String(params.page),
+      limit: String(params.limit),
+    });
     if (params.q) qs.set('q', params.q);
     return api.get<AdminList<UserDto>>(`/admin/users?${qs.toString()}`);
   },

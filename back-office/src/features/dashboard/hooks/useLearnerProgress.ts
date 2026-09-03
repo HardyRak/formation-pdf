@@ -20,6 +20,9 @@ export function useLearnerProgress(userId: string | null) {
         limit: FORMATIONS_BATCH_SIZE,
       }),
     getNextPageParam: (lastPage, allPages) => {
+      // Garde-fou : une fenêtre vide (données modifiées entre-temps) ne doit
+      // jamais produire un curseur immuable → on arrête le load-more.
+      if (lastPage.formations.length === 0) return undefined;
       const loaded = allPages.reduce((sum, page) => sum + page.formations.length, 0);
       return loaded < lastPage.totalFormations ? loaded : undefined;
     },
