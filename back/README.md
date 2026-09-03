@@ -180,6 +180,9 @@ rester compatibles avec le client mobile.
 | `npm run start:prod` | Lance le build compilé |
 | `npm run typecheck` | Vérification TypeScript seule |
 | `npm run seed` | Réinitialise et peuple MongoDB |
+| `npm run test` | Tests unitaires (Jest) — accès, progression |
+| `npm run test:watch` | Tests unitaires en watch mode |
+| `npm run test:cov` | Tests unitaires + couverture |
 | `npm run test:access` | Valide la logique d'accès (cascade document → niveau → formation) |
 | `npm run test:logs` | Valide l'enrichissement des logs et la capture d'erreurs détaillées |
 
@@ -196,15 +199,15 @@ Au branchement du transport HTTP (voir la suite du chantier), il faudra adapter
 src/
 ├── main.ts                 # bootstrap (préfixe /v1, helmet, CORS, pipes, filtre)
 ├── app.module.ts           # module racine
-├── config/                 # configuration .env + validation Joi
-├── common/                 # contrats DTO, ApiException, filtre d'erreurs, décorateurs
+├── config/                 # configuration .env + validation Joi + maskMongoUri
+├── common/                 # contrats DTO, ApiException, filtre d'erreurs, décorateurs, id.util
 ├── health/                 # healthcheck
 ├── logs/                   # journalisation de chaque requête HTTP (console + /logs)
-├── users/                  # schéma User (+ `active` soft-disable)
+├── users/                  # schéma User (+ `active` soft-disable) + user.mapper
 ├── auth/                   # login/refresh/me/logout, JWT, guard, hash mots de passe
 ├── access/                 # ACL serveur (service + schéma access_grants)
 ├── catalog/                # formations / niveaux / documents (+ guards d'accès)
 ├── progression/            # progression de lecture persistée en base (sync mobile)
-├── admin/                  # back-office : garde MANAGER, CRUD, upload PDF, stats
+├── admin/                  # back-office : services focalisés (users/access/catalog/stats)
 └── seed/                   # seed depuis le catalogue mobile (script standalone)
 ```

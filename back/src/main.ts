@@ -58,8 +58,7 @@ async function bootstrap(): Promise<void> {
 
   const port = config.get<number>('port') ?? 3000;
   await app.listen(port, '0.0.0.0');
-  // eslint-disable-next-line no-console
-  console.log(`🚀 PDF Formation API disponible sur http://localhost:${port}/v1`);
+  Logger.log(`🚀 PDF Formation API disponible sur http://localhost:${port}/v1`, 'Bootstrap');
 }
 
 void bootstrap();

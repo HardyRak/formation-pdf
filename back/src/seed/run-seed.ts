@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { maskMongoUri } from '../config/configuration';
 import { SeedAppModule } from './seed-app.module';
 import { SeedService } from './seed.service';
 
@@ -15,8 +17,8 @@ async function run(): Promise<void> {
   });
   try {
     const config = app.get(ConfigService);
-    // eslint-disable-next-line no-console
-    console.log(`🌱 Seed vers MongoDB : ${config.get('mongoUri')}`);
+    // L'URI est journalisée SANS identifiants (jamais de mot de passe en clair).
+    Logger.log(`🌱 Seed vers MongoDB : ${maskMongoUri(config.get<string>('mongoUri') ?? '')}`, 'Seed');
     await app.get(SeedService).run();
   } finally {
     await app.close();
@@ -24,7 +26,6 @@ async function run(): Promise<void> {
 }
 
 run().catch((error: unknown) => {
-  // eslint-disable-next-line no-console
-  console.error('❌ Seed échoué :', error);
+  Logger.error('❌ Seed échoué :', error instanceof Error ? error.stack : String(error), 'Seed');
   process.exitCode = 1;
 });
