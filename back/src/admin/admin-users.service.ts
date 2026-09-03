@@ -6,6 +6,7 @@ import type { UserDto } from '../common/contracts';
 import { User, UserDocument } from '../users/user.schema';
 import { toUserDto } from '../users/user.mapper';
 import { hashPassword } from '../auth/password.util';
+import { escapeRegex } from '../common/id.util';
 import type { AdminList, AnyDoc } from './admin.types';
 
 /** Charge utile de création d'un compte (validée par le DTO). */
@@ -113,8 +114,8 @@ export class AdminUsersService {
     return toUserDto((await this.users.findById(id).lean()) as AnyDoc);
   }
 
-  /** Construit une regex de recherche insensible à la casse (échapée). */
+  /** Construit une regex de recherche insensible à la casse (terme échapé). */
   private searchRegex(value: string): RegExp {
-    return new RegExp(value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    return new RegExp(escapeRegex(value.trim()), 'i');
   }
 }
