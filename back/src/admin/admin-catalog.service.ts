@@ -106,8 +106,16 @@ export class AdminCatalogService {
 
   // ---- Formations ---------------------------------------------------------
 
-  async listFormations(): Promise<AdminDoc[]> {
-    const rows = (await this.formations.find().sort({ order: 1 }).lean()) as AnyDoc[];
+  async listFormations(
+    options: { q?: string; limit?: number } = {},
+  ): Promise<AdminDoc[]> {
+    const filter: Record<string, unknown> = {};
+    if (options.q?.trim()) {
+      filter.name = { $regex: new RegExp(escapeRegex(options.q.trim()), 'i') };
+    }
+    let query = this.formations.find(filter).sort({ order: 1 });
+    if (options.limit !== undefined) query = query.limit(options.limit);
+    const rows = (await query.lean()) as AnyDoc[];
     return rows.map(withId);
   }
 

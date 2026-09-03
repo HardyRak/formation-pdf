@@ -23,6 +23,7 @@ export { Modal } from './Modal';
 export { PageHeader } from './PageHeader';
 export { ProgressBar } from './ProgressBar';
 export { QueryGate } from './QueryGate';
+export { SearchSelect } from './SearchSelect';
 export { Select } from './Select';
 export { TextArea } from './TextArea';
 export { TextField } from './TextField';

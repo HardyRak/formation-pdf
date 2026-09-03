@@ -50,8 +50,24 @@ export class AdminUsersService {
       filter.role = options.role;
     }
     if (options.q) {
-      const re = this.searchRegex(options.q);
-      filter.$or = [{ email: re }, { firstName: re }, { lastName: re }, { company: re }];
+      // Recherche multi-mots : « sophie mar » doit matcher Sophie Martin.
+      // `fullName` couvre prénom + nom, les champs individuels restent en
+      // filet pour les comptes créés avant l'introduction de `fullName`.
+      const terms = options.q.trim().split(/\s+/).filter(Boolean);
+      if (terms.length > 0) {
+        filter.$and = terms.map((term) => {
+          const re = this.searchRegex(term);
+          return {
+            $or: [
+              { fullName: re },
+              { firstName: re },
+              { lastName: re },
+              { email: re },
+              { company: re },
+            ],
+          };
+        });
+      }
     }
 
     // Pagination explicite (dashboard) : count + fenêtre skip/limit.
@@ -104,6 +120,7 @@ export class AdminUsersService {
       passwordHash,
       firstName: input.firstName,
       lastName: input.lastName,
+      fullName: this.joinName(input.firstName, input.lastName),
       role: input.role,
       company: input.company ?? '',
       avatarColor: input.avatarColor ?? '#4F46E5',
@@ -130,6 +147,13 @@ export class AdminUsersService {
     }
     if (input.firstName !== undefined) patch.firstName = input.firstName;
     if (input.lastName !== undefined) patch.lastName = input.lastName;
+    // Recalcule le nom complet dès que prénom ou nom change.
+    if (input.firstName !== undefined || input.lastName !== undefined) {
+      patch.fullName = this.joinName(
+        String(patch.firstName ?? user.firstName ?? ''),
+        String(patch.lastName ?? user.lastName ?? ''),
+      );
+    }
     if (input.role !== undefined) patch.role = input.role;
     if (input.company !== undefined) patch.company = input.company;
     if (input.avatarColor !== undefined) patch.avatarColor = input.avatarColor;
@@ -140,6 +164,11 @@ export class AdminUsersService {
 
     await this.users.updateOne({ _id: id }, { $set: patch });
     return toUserDto((await this.users.findById(id).lean()) as AnyDoc);
+  }
+
+  /** Concatène prénom + nom (une seule occurrence d'espace, sans espaces vides). */
+  private joinName(firstName: string, lastName: string): string {
+    return [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
   }
 
   async setActive(id: string, active: boolean): Promise<UserDto> {

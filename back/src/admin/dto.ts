@@ -16,8 +16,7 @@ import { Type } from 'class-transformer';
 
 /**
  * Query de listage des utilisateurs (admin) : recherche plein texte + filtre
- * rôle + pagination optionnelle (sans `page`/`limit`, toute la liste est
- * renvoyée — comportement historique attendu par les selects du back-office).
+ * rôle + pagination optionnelle.
  */
 export class ListUsersQueryDto {
   @IsOptional()
@@ -34,6 +33,21 @@ export class ListUsersQueryDto {
   @IsInt()
   @Min(1)
   page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
+/** Query de listage des formations (admin) : recherche `q` + limite. */
+export class ListFormationsQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
 
   @IsOptional()
   @Type(() => Number)

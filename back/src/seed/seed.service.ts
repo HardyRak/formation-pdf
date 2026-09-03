@@ -77,6 +77,7 @@ export class SeedService {
     const users = await Promise.all(
       DEMO_USERS.map(async ({ password, ...user }) => ({
         ...user,
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
         passwordHash: await hashPassword(password),
       })),
     );

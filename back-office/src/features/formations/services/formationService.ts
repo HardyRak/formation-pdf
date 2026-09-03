@@ -7,6 +7,12 @@ export const formationService = {
   list: async (): Promise<FormationDto[]> =>
     withIds<FormationDto>(await api.get<RawDoc[]>('/admin/formations')),
 
+  search: async (q: string, limit = 5): Promise<FormationDto[]> => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (q) qs.set('q', q);
+    return withIds<FormationDto>(await api.get<RawDoc[]>(`/admin/formations?${qs.toString()}`));
+  },
+
   create: (body: Partial<FormationDto>) => api.post<FormationDto>('/admin/formations', body),
 
   update: (id: string, body: Partial<FormationDto>) =>

@@ -31,6 +31,7 @@ import {
   CreateLevelDto,
   CreateUserDto,
   GrantAccessDto,
+  ListFormationsQueryDto,
   ListUserProgressQueryDto,
   ListUsersQueryDto,
   SetActiveDto,
@@ -152,8 +153,8 @@ export class AdminController {
   // ---- Formations --------------------------------------------------------------
 
   @Get('formations')
-  listFormations() {
-    return this.catalog.listFormations();
+  listFormations(@Query() query: ListFormationsQueryDto) {
+    return this.catalog.listFormations({ q: query.q, limit: query.limit });
   }
 
   @Post('formations')

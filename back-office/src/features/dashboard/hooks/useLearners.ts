@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { dashboardService } from '../services/dashboardService';
-import { useDebouncedValue } from './useDebouncedValue';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 
 export const LEARNERS_PAGE_SIZE = 5;
 
