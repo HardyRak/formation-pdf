@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { LogClientSource } from './source.util';
+
+export { type LogClientSource, type ClientPlatform } from './source.util';
 
 /** Utilisateur authentifié ayant émis la requête (extrait du JWT par les guards). */
 export interface LogUser {
@@ -47,6 +50,8 @@ export interface LogEntry {
   /** Adresse IP du client (derrière reverse proxy si présent). */
   ip: string;
   userAgent: string;
+  /** Source de la requête (Mobile / Web Back-Office / API / Inconnu). */
+  source: LogClientSource;
   /** Utilisateur authentifié, `null` si la route est publique. */
   user: LogUser | null;
   /** Paramètres de requête (query string) masqués. */
@@ -89,6 +94,7 @@ export class LogService {
   getEntries(): LogEntry[] {
     return this.entries.map((e) => ({
       ...e,
+      source: { ...e.source },
       user: e.user ? { ...e.user } : null,
       queryParams: e.queryParams ? { ...e.queryParams } : undefined,
       params: e.params ? { ...e.params } : undefined,
@@ -101,6 +107,7 @@ export class LogService {
     return last
       ? {
           ...last,
+          source: { ...last.source },
           user: last.user ? { ...last.user } : null,
           queryParams: last.queryParams ? { ...last.queryParams } : undefined,
           params: last.params ? { ...last.params } : undefined,

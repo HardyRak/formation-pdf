@@ -1,5 +1,5 @@
 /**
- * Validation de l'enrichissement des logs et de la capture d'erreurs détaillées.
+ * Validation de l'enrichissement des logs, détection de source et capture d'erreurs détaillées.
  * Exécution : node -r ts-node/register scripts/validate-logs.ts
  */
 import { BadRequestException } from '@nestjs/common';
@@ -9,6 +9,7 @@ import { LogCaptureMiddleware } from '../src/logs/log-capture.middleware';
 import { ApiExceptionFilter } from '../src/common/api-exception.filter';
 import { ApiException } from '../src/common/api-exception';
 import { maskBody, maskHeaders, maskParams, maskUrl } from '../src/logs/mask.util';
+import { detectClientSource } from '../src/logs/source.util';
 
 function assert(cond: boolean, msg: string): void {
   if (!cond) throw new Error(`✗ ASSERTION ÉCHOUÉE : ${msg}`);
@@ -75,10 +76,57 @@ async function main(): Promise<number> {
   const url = maskUrl('/v1/auth/callback?token=my-secret-token&id=123');
   assert(decodeURIComponent(url).includes('token=[MASQUÉ]'), 'URL token query param masqué');
 
-  console.log('\n--- 2. Validation de ApiExceptionFilter & enrichissement des erreurs ---');
+  console.log('\n--- 2. Validation de la détection de la source client (source.util) ---');
+
+  // 2.1 Requête explicite Mobile
+  const reqMobile: any = {
+    headers: {
+      'x-client-app': 'pdf-formation-mobile',
+      'x-client-platform': 'mobile',
+      'user-agent': 'okhttp/4.9.2 (Linux; Android 14)',
+    },
+  };
+  const sourceMobile = detectClientSource(reqMobile);
+  assert(sourceMobile.platform === 'MOBILE', 'Mobile: platform = MOBILE');
+  assert(sourceMobile.app.includes('Application Mobile (PDF Formation)'), 'Mobile: nom application détecté');
+  assert(sourceMobile.os === 'Android', 'Mobile: OS Android détecté');
+
+  // 2.2 Requête explicite Back-Office Web
+  const reqBackOffice: any = {
+    headers: {
+      'x-client-app': 'pdf-formation-backoffice',
+      'x-client-platform': 'web',
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+    },
+  };
+  const sourceBackOffice = detectClientSource(reqBackOffice);
+  assert(sourceBackOffice.platform === 'WEB', 'Web: platform = WEB');
+  assert(sourceBackOffice.app.includes('Back-Office Web (PDF Formation)'), 'Web: nom application détecté');
+  assert(sourceBackOffice.os === 'macOS', 'Web: OS macOS détecté');
+
+  // 2.3 Détection Expo / React Native
+  const reqExpo: any = {
+    headers: {
+      'user-agent': 'Expo/51.0.0 CFNetwork/1410.0.3 Darwin/22.6.0 (iPhone; iOS 16.6)',
+    },
+  };
+  const sourceExpo = detectClientSource(reqExpo);
+  assert(sourceExpo.platform === 'MOBILE', 'Expo: platform = MOBILE');
+  assert(sourceExpo.label.includes('[MOBILE]'), 'Expo: label [MOBILE]');
+
+  // 2.4 Détection Outils API (cURL, Postman)
+  const reqCurl: any = { headers: { 'user-agent': 'curl/8.1.2' } };
+  const sourceCurl = detectClientSource(reqCurl);
+  assert(sourceCurl.platform === 'API' && sourceCurl.app === 'cURL', 'cURL détecté comme API');
+
+  const reqPostman: any = { headers: { 'user-agent': 'PostmanRuntime/7.32.3' } };
+  const sourcePostman = detectClientSource(reqPostman);
+  assert(sourcePostman.platform === 'API' && sourcePostman.app === 'Postman', 'Postman détecté comme API');
+
+  console.log('\n--- 3. Validation de ApiExceptionFilter & enrichissement des erreurs ---');
   const filter = new ApiExceptionFilter();
 
-  // Test 2.1 : Erreur 500 inattendue (ex: MongoServerError / TypeError)
+  // Test 3.1 : Erreur 500 inattendue (ex: MongoServerError / TypeError)
   let capturedStatus = 0;
   let capturedBody: any = null;
   const fakeReq500: any = {};
@@ -119,7 +167,7 @@ async function main(): Promise<number> {
   assert(fakeReq500._errorDetails.stack !== undefined, 'Stack trace capturée');
   assert(fakeReq500._errorDetails.details.duplicateKey._id === 'doc-ang-2-1', 'Détails de clé dupliquée capturés');
 
-  // Test 2.2 : Erreur de validation DTO (BadRequestException)
+  // Test 3.2 : Erreur de validation DTO (BadRequestException)
   const fakeReq400: any = {};
   const fakeRes400: any = {
     status: (s: number) => {
@@ -147,7 +195,7 @@ async function main(): Promise<number> {
   assert(Array.isArray(fakeReq400._errorDetails.details), 'Détails des contraintes capturés sous forme de tableau');
   assert(fakeReq400._errorDetails.details.length === 2, '2 contraintes de validation');
 
-  // Test 2.3 : ApiException métier
+  // Test 3.3 : ApiException métier
   const fakeReqMetier: any = {};
   const fakeResMetier: any = {
     status: (s: number) => {
@@ -174,7 +222,7 @@ async function main(): Promise<number> {
   assert(fakeReqMetier._errorDetails.name === 'ApiException', 'Nom ApiException');
   assert(fakeReqMetier._errorDetails.message === 'Formation introuvable.', 'Message Formation introuvable.');
 
-  console.log('\n--- 3. Validation de LogService & LogCaptureMiddleware ---');
+  console.log('\n--- 4. Validation de LogService & LogCaptureMiddleware ---');
   const fakeConfig = {
     get: (k: string) => (k === 'logBufferSize' ? 5 : undefined),
   } as unknown as ConfigService;
@@ -182,7 +230,7 @@ async function main(): Promise<number> {
   const logService = new LogService(fakeConfig);
   const middleware = new LogCaptureMiddleware(logService);
 
-  // Simule une requête avec erreur 500
+  // Simule une requête avec erreur 500 provenant du Back-Office Web
   const listeners: Record<string, () => void> = {};
 
   const mockReq: any = {
@@ -192,8 +240,10 @@ async function main(): Promise<number> {
     path: '/v1/admin/levels/l-ang-2/documents',
     ip: '127.0.0.1',
     headers: {
-      'user-agent': 'Mozilla/5.0 Jest',
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
       'authorization': 'Bearer confidential-token',
+      'x-client-app': 'pdf-formation-backoffice',
+      'x-client-platform': 'web',
     },
     body: {
       title: 'English Document 2',
@@ -237,6 +287,8 @@ async function main(): Promise<number> {
   assert(entry.method === 'POST', 'Méthode POST');
   assert(entry.url === '/v1/admin/levels/l-ang-2/documents', 'URL correcte');
   assert(entry.statusCode === 500, 'Status code 500');
+  assert(entry.source.platform === 'WEB', 'entry.source.platform = WEB');
+  assert(entry.source.app.includes('Back-Office Web'), 'entry.source.app = Back-Office Web');
   assert(entry.user?.email === 'karim.benali@pdftrain.io', 'Utilisateur tracé');
   assert(entry.params?.id === 'l-ang-2', 'Paramètres de route tracés');
   assert((entry.requestBody as any).password === '[MASQUÉ - CONFIDENTIEL]', 'Corps sensible masqué');
@@ -246,7 +298,7 @@ async function main(): Promise<number> {
   assert(Boolean(entry.error?.message.includes('E11000 duplicate key error')), 'error.message technique conservé');
   assert(Boolean(entry.error?.stack !== undefined), 'error.stack conservé');
 
-  console.log('\n✅ TOUS LES TESTS DE JOURNALISATION ENRICHIE PASSENT AVEC SUCCÈS.');
+  console.log('\n✅ TOUS LES TESTS DE JOURNALISATION ENRICHIE ET SOURCE CLIENT PASSENT AVEC SUCCÈS.');
   return 0;
 }
 

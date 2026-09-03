@@ -1,13 +1,20 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import type { AuthUser } from '../common/auth-user';
-import { LogService, type LogEntry, type LogErrorDetails, type LogUser } from './log.service';
+import {
+  LogService,
+  type LogEntry,
+  type LogErrorDetails,
+  type LogUser,
+} from './log.service';
 import { maskBody, maskHeaders, maskParams, maskUrl } from './mask.util';
+import { detectClientSource } from './source.util';
 
 /**
  * Journalise CHAQUE requête HTTP entrante, quel que soit son résultat :
  *  - écrit une ligne lisible et enrichie dans la sortie standard (Logger NestJS)
- *    avec détails techniques complets et stack trace en cas d'erreur ;
+ *    avec la source de l'application (Mobile / Web Back-Office / API), l'utilisateur,
+ *    l'IP, la durée et les détails techniques complets / stack trace en cas d'erreur ;
  *  - alimente le tampon mémoire de `LogService`, consultable via `GET /logs`.
  *
  * Toutes les données sensibles (jetons, mots de passe, cookies, clés) sont
@@ -29,6 +36,8 @@ export class LogCaptureMiddleware implements NestMiddleware {
     const path = req.path || rawUrl.split('?')[0] || '/';
     const ip = clientIp(req);
     const userAgent = readHeader(req.headers['user-agent']);
+    const source = detectClientSource(req);
+
     // Capturés à l'entrée (le corps peut être consommé ensuite).
     const requestHeaders = maskHeaders(req.headers as Record<string, unknown>);
     const requestBody = maskBody(req.body);
@@ -102,6 +111,7 @@ export class LogCaptureMiddleware implements NestMiddleware {
         durationMs,
         ip,
         userAgent,
+        source,
         user,
         queryParams: queryParams && Object.keys(queryParams).length > 0 ? queryParams : undefined,
         params: params && Object.keys(params).length > 0 ? params : undefined,
@@ -121,9 +131,10 @@ export class LogCaptureMiddleware implements NestMiddleware {
 
   private writeToConsole(entry: LogEntry): void {
     const userLabel = entry.user ? `${entry.user.email} (${entry.user.id})` : 'anonyme';
+    const sourceLabel = entry.source?.label ?? '[UNKNOWN] Inconnu';
     const line =
       `${entry.method} ${entry.url} → ${entry.statusCode} ` +
-      `${entry.durationMs} ms · ip=${entry.ip} · user=${userLabel}`;
+      `${entry.durationMs} ms · ip=${entry.ip} · source=${sourceLabel} · user=${userLabel}`;
 
     if (entry.statusCode >= 500) {
       const detailLines: string[] = [line];
@@ -145,6 +156,7 @@ export class LogCaptureMiddleware implements NestMiddleware {
           detailLines.push(`  ↳ Cause: ${formattedCause}`);
         }
       }
+      detailLines.push(`  ↳ Client Source: ${entry.source.app} [Plateforme: ${entry.source.platform}]`);
       if (entry.params && Object.keys(entry.params).length > 0) {
         detailLines.push(`  ↳ Params: ${JSON.stringify(entry.params)}`);
       }
@@ -173,6 +185,7 @@ export class LogCaptureMiddleware implements NestMiddleware {
           detailLines.push(`  ↳ Details: ${formattedDetails}`);
         }
       }
+      detailLines.push(`  ↳ Client Source: ${entry.source.app} [Plateforme: ${entry.source.platform}]`);
       if (entry.params && Object.keys(entry.params).length > 0) {
         detailLines.push(`  ↳ Params: ${JSON.stringify(entry.params)}`);
       }
