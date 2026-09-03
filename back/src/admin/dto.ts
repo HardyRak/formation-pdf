@@ -43,6 +43,14 @@ export class ListUsersQueryDto {
   limit?: number;
 }
 
+/** Query de listage des formations (admin) : recherche `q` sur le nom. */
+export class ListFormationsQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+}
+
 /**
  * Query de l'avancement d'un apprenant : pagination optionnelle par fenêtre
  * (`offset`/`limit`) pour le défilement infini du back-office. Sans paramètres,

@@ -7,6 +7,9 @@ export const formationService = {
   list: async (): Promise<FormationDto[]> =>
     withIds<FormationDto>(await api.get<RawDoc[]>('/admin/formations')),
 
+  search: async (q: string): Promise<FormationDto[]> =>
+    withIds<FormationDto>(await api.get<RawDoc[]>(`/admin/formations?q=${encodeURIComponent(q)}`)),
+
   create: (body: Partial<FormationDto>) => api.post<FormationDto>('/admin/formations', body),
 
   update: (id: string, body: Partial<FormationDto>) =>

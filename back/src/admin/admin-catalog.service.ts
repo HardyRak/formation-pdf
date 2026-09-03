@@ -106,8 +106,11 @@ export class AdminCatalogService {
 
   // ---- Formations ---------------------------------------------------------
 
-  async listFormations(): Promise<AdminDoc[]> {
-    const rows = (await this.formations.find().sort({ order: 1 }).lean()) as AnyDoc[];
+  async listFormations(q?: string): Promise<AdminDoc[]> {
+    const filter = q?.trim()
+      ? { name: { $regex: new RegExp(escapeRegex(q.trim()), 'i') } }
+      : {};
+    const rows = (await this.formations.find(filter).sort({ order: 1 }).lean()) as AnyDoc[];
     return rows.map(withId);
   }
 

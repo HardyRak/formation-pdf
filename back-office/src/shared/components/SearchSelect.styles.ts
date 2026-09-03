@@ -9,6 +9,7 @@ export const styles: {
   option: CSSProperties;
   optionSelected: CSSProperties;
   empty: CSSProperties;
+  error: CSSProperties;
 } = {
   root: {
     position: 'relative',
@@ -54,5 +55,12 @@ export const styles: {
     padding: '8px 10px',
     color: 'var(--text-muted)',
     fontSize: '14px',
+  },
+  error: {
+    margin: 0,
+    padding: '8px 10px',
+    color: 'var(--danger)',
+    fontSize: '14px',
+    fontWeight: 600,
   },
 };

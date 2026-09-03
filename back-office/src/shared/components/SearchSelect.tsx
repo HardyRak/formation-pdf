@@ -21,12 +21,24 @@ export function SearchSelect<T extends string = string>({
   options,
   placeholder = 'Rechercher…',
   disabled,
+  selectedLabel,
+  onSearch,
+  isLoading,
+  searchError,
 }: {
   value: T | '';
   onChange: (value: T | '') => void;
   options: SearchSelectOption<T>[];
   placeholder?: string;
   disabled?: boolean;
+  /** Libellé de la valeur sélectionnée si elle n'est pas dans les `options` courantes. */
+  selectedLabel?: string;
+  /** Recherche pilotée par le parent (appel distant) ; reçoit la saisie brute. */
+  onSearch?: (search: string) => void;
+  /** État de chargement de la recherche distante. */
+  isLoading?: boolean;
+  /** Erreur de recherche distante. */
+  searchError?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -35,7 +47,15 @@ export function SearchSelect<T extends string = string>({
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
 
-  const selected = options.find((option) => option.value === value);
+  const selected =
+    options.find((option) => option.value === value) ??
+    (selectedLabel ? { value: value as T, label: selectedLabel } : undefined);
+
+  const close = () => {
+    setOpen(false);
+    setActiveIndex(-1);
+    onSearch?.('');
+  };
 
   // Synchronise l'affichage quand la valeur (ou son libellé, chargé en async)
   // change, sans écraser une recherche en cours.
@@ -57,8 +77,7 @@ export function SearchSelect<T extends string = string>({
   const choose = (option: SearchSelectOption<T>) => {
     onChange(option.value);
     setText(option.label);
-    setOpen(false);
-    setActiveIndex(-1);
+    close();
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -76,8 +95,7 @@ export function SearchSelect<T extends string = string>({
         choose(filtered[activeIndex]);
       }
     } else if (e.key === 'Escape') {
-      setOpen(false);
-      setActiveIndex(-1);
+      close();
     }
   };
 
@@ -98,6 +116,7 @@ export function SearchSelect<T extends string = string>({
         onChange={(e) => {
           const next = e.target.value;
           setText(next);
+          onSearch?.(next);
           if (next.trim() === '' && value !== '') onChange('');
           setOpen(true);
           setActiveIndex(-1);
@@ -110,15 +129,7 @@ export function SearchSelect<T extends string = string>({
         style={{ ...styles.input, ...(disabled ? styles.inputDisabled : null) }}
       />
 
-      <Popover
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setActiveIndex(-1);
-        }}
-        anchorRef={rootRef}
-        minWidth={220}
-      >
+      <Popover open={open} onClose={close} anchorRef={rootRef} minWidth={220}>
         <div id={listId} role="listbox" style={styles.panel}>
           {filtered.length > 0 ? (
             filtered.map((option, i) => {
@@ -143,6 +154,10 @@ export function SearchSelect<T extends string = string>({
                 </button>
               );
             })
+          ) : isLoading ? (
+            <p style={styles.empty}>Recherche…</p>
+          ) : searchError ? (
+            <p style={styles.error}>{searchError}</p>
           ) : (
             <p style={styles.empty}>{options.length === 0 ? 'Aucune option disponible' : 'Aucun résultat'}</p>
           )}

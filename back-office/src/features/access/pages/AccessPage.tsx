@@ -13,10 +13,12 @@ import {
   Select,
 } from '@/shared/components';
 import { useFormations } from '@/features/formations/hooks/useFormations';
+import { useFormationSearch } from '@/features/formations/hooks/useFormationSearch';
 import { useLevels } from '@/features/formations/hooks/useLevels';
 import { useDocuments } from '@/features/formations/hooks/useDocuments';
 import { useGrants } from '../hooks/useGrants';
 import { useUsers } from '../hooks/useUsers';
+import { useUserSearch } from '../hooks/useUserSearch';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { styles } from './AccessPage.styles';
 
@@ -33,6 +35,8 @@ export function AccessPage() {
   } = useGrants();
   const { users } = useUsers();
   const { formations } = useFormations();
+  const userSearch = useUserSearch();
+  const formationSearch = useFormationSearch();
 
   const [userId, setUserId] = useState('');
   const [formationId, setFormationId] = useState('');
@@ -45,16 +49,33 @@ export function AccessPage() {
 
   // Valeurs dérivées (pas de useEffect : dérivation pure).
   const userNames: Record<string, string> = {};
-  const userOptions = users.map((u) => {
-    const label = `${u.firstName} ${u.lastName} (${u.email})`;
+  const baseUserOptions = users.map((u) => {
     userNames[u.id] = `${u.firstName} ${u.lastName}`;
-    return { value: u.id, label };
+    return { value: u.id, label: `${u.firstName} ${u.lastName} (${u.email})` };
   });
   const formationNames: Record<string, string> = {};
-  const formationOptions = formations.map((f) => {
+  const baseFormationOptions = formations.map((f) => {
     formationNames[f.id] = f.name;
     return { value: f.id, label: f.name };
   });
+
+  // Pendant une recherche, les options proviennent du backend ; sur termes
+  // vides on réutilise les listes de base (déjà chargées).
+  const userSearchActive = userSearch.search.trim().length > 0;
+  const userOptions = userSearchActive
+    ? userSearch.users.map((u) => {
+        userNames[u.id] = `${u.firstName} ${u.lastName}`;
+        return { value: u.id, label: `${u.firstName} ${u.lastName} (${u.email})` };
+      })
+    : baseUserOptions;
+
+  const formationSearchActive = formationSearch.search.trim().length > 0;
+  const formationOptions = formationSearchActive
+    ? formationSearch.formations.map((f) => {
+        formationNames[f.id] = f.name;
+        return { value: f.id, label: f.name };
+      })
+    : baseFormationOptions;
 
   // Titres des documents référencés par les grants (pour libeller la révocation).
   const grantedDocIds = grants.flatMap((g) => g.documentIds ?? []);
@@ -118,6 +139,14 @@ export function AccessPage() {
               <SearchSelect
                 value={userId}
                 onChange={setUserId}
+                onSearch={userSearch.setSearch}
+                selectedLabel={userId ? userNames[userId] : undefined}
+                isLoading={userSearch.isSearching}
+                searchError={
+                  userSearchActive && userSearch.isError
+                    ? ((userSearch.error as { message?: string }).message ?? 'Recherche impossible.')
+                    : null
+                }
                 placeholder="Rechercher un apprenant…"
                 options={userOptions}
               />
@@ -126,6 +155,14 @@ export function AccessPage() {
               <SearchSelect
                 value={formationId}
                 onChange={handleFormationChange}
+                onSearch={formationSearch.setSearch}
+                selectedLabel={formationId ? formationNames[formationId] : undefined}
+                isLoading={formationSearch.isSearching}
+                searchError={
+                  formationSearchActive && formationSearch.isError
+                    ? ((formationSearch.error as { message?: string }).message ?? 'Recherche impossible.')
+                    : null
+                }
                 placeholder="Rechercher une formation…"
                 options={formationOptions}
               />
