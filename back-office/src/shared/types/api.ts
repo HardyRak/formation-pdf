@@ -78,6 +78,33 @@ export interface AccessGrantDto {
 export interface AdminList<T> {
   total: number;
   items: T[];
+  /** Renseignés uniquement quand la requête est paginée (page/limit). */
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+}
+
+/** Avancement d'un apprenant sur une formation (agrégé côté backend). */
+export interface LearnerFormationProgressDto {
+  formationId: string;
+  formationName: string;
+  icon: string;
+  color: string;
+  documentsTotal: number;
+  documentsStarted: number;
+  documentsCompleted: number;
+  pagesRead: number;
+  totalPages: number;
+  percent: number;
+  /** Dernière activité de lecture (ms) ; null si aucune lecture. */
+  lastActivityAt: number | null;
+}
+
+/** Réponse de GET /admin/users/:id/progress. */
+export interface LearnerProgressDto {
+  user: UserDto;
+  formations: LearnerFormationProgressDto[];
+  globalPercent: number;
 }
 
 export interface StatsDto {
