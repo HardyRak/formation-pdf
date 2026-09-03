@@ -47,8 +47,14 @@ export interface LearnerFormationProgress {
 /** Réponse de `GET /v1/admin/users/:id/progress`. */
 export interface LearnerProgressDto {
   user: UserDto;
+  /**
+   * Fenêtre de formations (ordre alphabétique stable) lorsque la requête est
+   * paginée via `offset`/`limit` ; toutes sinon.
+   */
   formations: LearnerFormationProgress[];
-  /** Progression globale, pondérée par les pages de toutes les formations listées. */
+  /** Nombre TOTAL de formations avant pagination (pour le load-more client). */
+  totalFormations: number;
+  /** Progression globale, pondérée par les pages de TOUTES les formations. */
   globalPercent: number;
 }
 

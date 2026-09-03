@@ -1,3 +1,4 @@
+import type { UIEvent } from 'react';
 import type { LearnerFormationProgressDto, UserDto } from '@/shared/types/api';
 import { FormationIcon } from '@/features/formations/components/FormationIcon';
 import { Avatar, Badge, Modal, ProgressBar, QueryGate } from '@/shared/components';
@@ -10,12 +11,38 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
 const formatDate = (timestamp: number | null): string | null =>
   timestamp === null ? null : dateFormatter.format(new Date(timestamp));
 
+/** Seuil de déclenchement du load-more avant le bas de la liste (px). */
+const LOAD_MORE_THRESHOLD_PX = 60;
+
 /**
  * Modale d'avancement d'un apprenant : progression par formation (pages lues,
- * documents terminés, dernière activité) + progression globale.
+ * documents terminés, dernière activité) + progression globale. Les formations
+ * se chargent par fenêtres : scroller en bas de liste en charge la suite.
  */
 export function LearnerProgressModal({ learner, onClose }: { learner: UserDto; onClose: () => void }) {
-  const { progress, isLoading, isError, error, refetch } = useLearnerProgress(learner.id);
+  const {
+    formations,
+    totalFormations,
+    globalPercent,
+    hasMore,
+    isLoading,
+    isFetchingNextPage,
+    isError,
+    error,
+    refetch,
+    fetchNextPage,
+  } = useLearnerProgress(learner.id);
+
+  const showGlobal = !isLoading && !isError;
+
+  // Scroll infini : près du bas → fenêtre suivante (pas de pagination cliquable).
+  const handleListScroll = (event: UIEvent<HTMLDivElement>) => {
+    if (!hasMore || isFetchingNextPage) return;
+    const el = event.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - LOAD_MORE_THRESHOLD_PX) {
+      void fetchNextPage();
+    }
+  };
 
   return (
     <Modal title={`Avancement — ${learner.firstName} ${learner.lastName}`} onClose={onClose}>
@@ -28,10 +55,10 @@ export function LearnerProgressModal({ learner, onClose }: { learner: UserDto; o
             </h3>
             <div style={styles.learnerEmail}>{learner.email}</div>
           </div>
-          {progress ? (
+          {showGlobal ? (
             <div style={styles.globalBlock}>
               <span style={styles.globalLabel}>GLOBAL</span>
-              <span style={styles.globalValue}>{progress.globalPercent}%</span>
+              <span style={styles.globalValue}>{globalPercent}%</span>
             </div>
           ) : null}
         </div>
@@ -44,11 +71,17 @@ export function LearnerProgressModal({ learner, onClose }: { learner: UserDto; o
           loadingLabel="Chargement de l'avancement…"
         >
           {() =>
-            progress && progress.formations.length > 0 ? (
-              <div style={styles.formationsList}>
-                {progress.formations.map((formation) => (
-                  <FormationProgressRow key={formation.formationId} formation={formation} />
-                ))}
+            formations.length > 0 ? (
+              <div style={styles.listBlock}>
+                <div style={styles.listCount}>
+                  {formations.length} / {totalFormations} formation{totalFormations > 1 ? 's' : ''}
+                </div>
+                <div style={styles.formationsList} onScroll={handleListScroll}>
+                  {formations.map((formation) => (
+                    <FormationProgressRow key={formation.formationId} formation={formation} />
+                  ))}
+                  {isFetchingNextPage ? <div style={styles.loadingMore}>Chargement…</div> : null}
+                </div>
               </div>
             ) : (
               <p style={styles.emptyText}>

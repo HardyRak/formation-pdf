@@ -43,6 +43,26 @@ export class ListUsersQueryDto {
   limit?: number;
 }
 
+/**
+ * Query de l'avancement d'un apprenant : pagination optionnelle par fenêtre
+ * (`offset`/`limit`) pour le défilement infini du back-office. Sans paramètres,
+ * toutes les formations sont renvoyées.
+ */
+export class ListUserProgressQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
 /** Création d'un compte utilisateur (admin). */
 export class CreateUserDto {
   @IsEmail()

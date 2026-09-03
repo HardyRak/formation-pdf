@@ -86,6 +86,7 @@ describe('AdminProgressService.learnerProgress', () => {
 
     expect(dto.user.id).toBe('usr-1');
     expect(dto.formations).toEqual([]);
+    expect(dto.totalFormations).toBe(0);
     expect(dto.globalPercent).toBe(0);
   });
 
@@ -106,6 +107,7 @@ describe('AdminProgressService.learnerProgress', () => {
 
     const dto = await service.learnerProgress('usr-1');
     expect(dto.formations).toHaveLength(1);
+    expect(dto.totalFormations).toBe(1);
 
     const f = dto.formations[0];
     expect(f.formationName).toBe('Sécurité HSE');
@@ -174,11 +176,54 @@ describe('AdminProgressService.learnerProgress', () => {
 
     const dto = await service.learnerProgress('usr-1');
     expect(dto.formations).toHaveLength(1);
+    expect(dto.totalFormations).toBe(1);
 
     const f = dto.formations[0];
     expect(f.documentsTotal).toBe(1); // seul doc-x a une lecture
     expect(f.pagesRead).toBe(4);
     expect(f.percent).toBe(50);
     expect(f.lastActivityAt).toBe(42);
+  });
+
+  it('pagine par fenêtre (offset/limit) en gardant les compteurs globaux sur tout', async () => {
+    const service = makeService({
+      users: [USER],
+      formations: [
+        { _id: 'f-a', name: 'Alpha', icon: 'book', color: '#111111' },
+        { _id: 'f-b', name: 'Beta', icon: 'school', color: '#222222' },
+        { _id: 'f-c', name: 'Gamma', icon: 'rocket', color: '#333333' },
+      ],
+      documents: [
+        { _id: 'doc-a', formationId: 'f-a', levelId: 'l', pageCount: 10 },
+        { _id: 'doc-b', formationId: 'f-b', levelId: 'l', pageCount: 10 },
+        { _id: 'doc-c', formationId: 'f-c', levelId: 'l', pageCount: 10 },
+      ],
+      grants: ['f-a', 'f-b', 'f-c'].map((fid) => ({
+        _id: `usr-1:${fid}`,
+        userId: 'usr-1',
+        formationId: fid,
+        levelIds: [],
+        documentIds: [],
+      })),
+      progress: [
+        // 5 pages lues sur Alpha uniquement → global = 5/30 ≈ 17 %.
+        { _id: 'usr-1:doc-a', userId: 'usr-1', documentId: 'doc-a', formationId: 'f-a', pagesRead: [1, 2, 3, 4, 5], pageCount: 10, completed: false, updatedAt: 10 },
+      ],
+    });
+
+    // Fenêtre 1 : les 2 premières formations par ordre alphabétique.
+    const page1 = await service.learnerProgress('usr-1', { offset: 0, limit: 2 });
+    expect(page1.formations.map((f) => f.formationName)).toEqual(['Alpha', 'Beta']);
+    expect(page1.totalFormations).toBe(3);
+    expect(page1.globalPercent).toBe(17); // calculé sur les 3 formations
+
+    // Fenêtre 2 : la suite.
+    const page2 = await service.learnerProgress('usr-1', { offset: 2, limit: 2 });
+    expect(page2.formations.map((f) => f.formationName)).toEqual(['Gamma']);
+    expect(page2.totalFormations).toBe(3);
+
+    // Sans pagination : tout, ordre alphabétique stable.
+    const all = await service.learnerProgress('usr-1');
+    expect(all.formations.map((f) => f.formationName)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 });

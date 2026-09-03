@@ -100,10 +100,12 @@ export interface LearnerFormationProgressDto {
   lastActivityAt: number | null;
 }
 
-/** Réponse de GET /admin/users/:id/progress. */
+/** Réponse de GET /admin/users/:id/progress (fenêtre offset/limit). */
 export interface LearnerProgressDto {
   user: UserDto;
   formations: LearnerFormationProgressDto[];
+  /** Nombre TOTAL de formations avant pagination (pour le load-more). */
+  totalFormations: number;
   globalPercent: number;
 }
 

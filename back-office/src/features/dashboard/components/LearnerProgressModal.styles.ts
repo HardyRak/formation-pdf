@@ -9,7 +9,10 @@ export const styles: {
   globalBlock: CSSProperties;
   globalLabel: CSSProperties;
   globalValue: CSSProperties;
+  listBlock: CSSProperties;
+  listCount: CSSProperties;
   formationsList: CSSProperties;
+  loadingMore: CSSProperties;
   formationRow: CSSProperties;
   formationHead: CSSProperties;
   formationIdentity: CSSProperties;
@@ -43,7 +46,18 @@ export const styles: {
   },
   globalLabel: { fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' },
   globalValue: { fontSize: '22px', fontWeight: 900, color: 'var(--primary)' },
-  formationsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  listBlock: { display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' },
+  listCount: { fontSize: '12px', color: 'var(--text-faint)' },
+  // Zone de défilement dédiée : le scroll ici déclenche le load-more.
+  formationsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxHeight: '46vh',
+    overflowY: 'auto',
+    paddingRight: '4px',
+  },
+  loadingMore: { fontSize: '12px', color: 'var(--text-faint)', textAlign: 'center', padding: '6px 0' },
   formationRow: {
     display: 'flex',
     flexDirection: 'column',

@@ -19,7 +19,14 @@ export const dashboardService = {
     return api.get<AdminList<UserDto>>(`/admin/users?${qs.toString()}`);
   },
 
-  /** Avancement d'un apprenant, agrégé par formation. */
-  getLearnerProgress: (userId: string) =>
-    api.get<LearnerProgressDto>(`/admin/users/${encodeURIComponent(userId)}/progress`),
+  /** Avancement d'un apprenant, agrégé par formation (fenêtre offset/limit). */
+  getLearnerProgress: (userId: string, params: { offset: number; limit: number }) => {
+    const qs = new URLSearchParams({
+      offset: String(params.offset),
+      limit: String(params.limit),
+    });
+    return api.get<LearnerProgressDto>(
+      `/admin/users/${encodeURIComponent(userId)}/progress?${qs.toString()}`,
+    );
+  },
 };

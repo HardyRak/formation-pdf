@@ -31,6 +31,7 @@ import {
   CreateLevelDto,
   CreateUserDto,
   GrantAccessDto,
+  ListUserProgressQueryDto,
   ListUsersQueryDto,
   SetActiveDto,
   UpdateCategoryDto,
@@ -74,8 +75,11 @@ export class AdminController {
 
   /** Avancement d'un apprenant, agrégé par formation (dashboard back-office). */
   @Get('users/:id/progress')
-  getUserProgress(@Param('id') id: string) {
-    return this.progress.learnerProgress(id);
+  getUserProgress(
+    @Param('id') id: string,
+    @Query() query: ListUserProgressQueryDto,
+  ) {
+    return this.progress.learnerProgress(id, query);
   }
 
   @Post('users')

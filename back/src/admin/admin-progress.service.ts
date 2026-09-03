@@ -34,6 +34,10 @@ import type {
  * Une formation est listée si l'apprenant y a un grant OU s'il y a une entrée
  * de progression (cas d'un accès révoqué après lecture : l'historique reste
  * visible, basé sur les seuls documents lus).
+ *
+ * Pagination : `offset`/`limit` renvoient une fenêtre de la liste triée par
+ * nom (ordre stable pour le scroll infini) ; `globalPercent` et
+ * `totalFormations` portent toujours sur TOUTES les formations.
  */
 @Injectable()
 export class AdminProgressService {
@@ -47,7 +51,10 @@ export class AdminProgressService {
     private readonly access: AccessService,
   ) {}
 
-  async learnerProgress(userId: string): Promise<LearnerProgressDto> {
+  async learnerProgress(
+    userId: string,
+    options: { offset?: number; limit?: number } = {},
+  ): Promise<LearnerProgressDto> {
     const user = await this.users.findById(userId).lean();
     if (!user) throw new ApiException(404, 'NOT_FOUND', 'Utilisateur introuvable.');
 
@@ -58,7 +65,7 @@ export class AdminProgressService {
 
     const formationIds = unionFormationIds(grants, progressRows);
     if (formationIds.length === 0) {
-      return { user: toUserDto(user), formations: [], globalPercent: 0 };
+      return { user: toUserDto(user), formations: [], totalFormations: 0, globalPercent: 0 };
     }
 
     const [catalogDocs, catalogFormations] = await Promise.all([
@@ -71,22 +78,33 @@ export class AdminProgressService {
       catalogFormations.map((f) => [String(f._id), f as AnyDoc]),
     );
 
-    const formations = formationIds.map((formationId) =>
-      buildFormationProgress({
-        formationId,
-        formation: formationById.get(formationId),
-        documents: catalogDocs.filter((d) => d.formationId === formationId),
-        grant: grants.find((g) => String(g.formationId) === formationId),
-        progressRows,
-      }),
-    );
+    const all = formationIds
+      .map((formationId) =>
+        buildFormationProgress({
+          formationId,
+          formation: formationById.get(formationId),
+          documents: catalogDocs.filter((d) => d.formationId === formationId),
+          grant: grants.find((g) => String(g.formationId) === formationId),
+          progressRows,
+        }),
+      )
+      // Ordre alphabétique : stable d'une page à l'autre (scroll infini).
+      .sort((a, b) => a.formationName.localeCompare(b.formationName));
 
-    const totalPages = formations.reduce((sum, f) => sum + f.totalPages, 0);
-    const pagesRead = formations.reduce((sum, f) => sum + f.pagesRead, 0);
+    // Les compteurs globaux portent sur TOUTES les formations, pas la fenêtre.
+    const totalPages = all.reduce((sum, f) => sum + f.totalPages, 0);
+    const pagesRead = all.reduce((sum, f) => sum + f.pagesRead, 0);
+
+    const offset = Math.max(0, Math.floor(options.offset ?? 0));
+    const formations =
+      options.limit !== undefined
+        ? all.slice(offset, offset + Math.max(1, Math.floor(options.limit)))
+        : all.slice(offset);
 
     return {
       user: toUserDto(user),
       formations,
+      totalFormations: all.length,
       globalPercent: percentOf(pagesRead, totalPages),
     };
   }
