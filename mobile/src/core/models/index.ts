@@ -38,6 +38,24 @@ export interface Formation {
   mandatory: boolean;
 }
 
+/**
+ * Page de résultats du catalogue (GET /formations) : le client charge la
+ * liste par tranches (infinite scroll) plutôt qu'en un seul appel.
+ */
+export interface FormationPage {
+  items: Formation[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+/** Catégorie proposée comme filtre de la liste des formations. */
+export interface FormationCategory {
+  name: string;
+  count: number;
+}
+
 export interface Level {
   id: string;
   formationId: string;

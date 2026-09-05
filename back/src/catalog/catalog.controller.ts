@@ -1,7 +1,12 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { FormationDto, LevelDto } from '../common/contracts';
+import type {
+  FormationCategoryDto,
+  FormationPageDto,
+  LevelDto,
+} from '../common/contracts';
 import { CatalogService } from './catalog.service';
+import { ListFormationsQueryDto } from './dto/list-formations-query.dto';
 
 /**
  * Routes du catalogue (métadonnées). L'accès au CONTENU est protégé,
@@ -13,9 +18,16 @@ import { CatalogService } from './catalog.service';
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
 
+  /** Liste paginée : recherche `q` + filtre `category` appliqués côté serveur. */
   @Get()
-  list(): Promise<FormationDto[]> {
-    return this.catalog.listFormations();
+  list(@Query() query: ListFormationsQueryDto): Promise<FormationPageDto> {
+    return this.catalog.listFormations(query);
+  }
+
+  /** Catégories disponibles pour le filtre de la liste. */
+  @Get('categories')
+  categories(): Promise<FormationCategoryDto[]> {
+    return this.catalog.listCategories();
   }
 
   @Get(':id/levels')

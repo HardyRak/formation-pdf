@@ -1,6 +1,5 @@
 import { signalStore } from '../core/state/create-store';
 import { progressionStore, progressionPercent } from '../core/state/progression.store';
-import { formationStore } from '../core/state/formation.store';
 import { pdfReaderStore, ZOOM_STEPS } from '../core/state/pdf-reader.store';
 import { catalogDb } from '../core/api/backend/catalog';
 import { handleRequest, decodeJwt, DEMO_CREDENTIALS, b64 } from '../core/api/backend/server';
@@ -14,7 +13,14 @@ import {
   utf8ToBytes,
 } from '../core/utils/binary';
 import { ROUTE_NAMES } from '../navigation/routes';
-import type { AuthSession, DocumentProgress, Formation, Level, TrainingDocument } from '../core/models';
+import type {
+  AuthSession,
+  DocumentProgress,
+  FormationCategory,
+  FormationPage,
+  Level,
+  TrainingDocument,
+} from '../core/models';
 
 export interface TestResult {
   suite: string;
@@ -70,15 +76,54 @@ const cases: TestCase[] = [
   },
   {
     suite: 'Stores',
-    name: 'FormationStore filtre par nom, description et cat\u00e9gorie',
-    run: () => {
-      const previous = formationStore.state().query;
-      const total = formationStore.state().items.length;
-      formationStore.setQuery('zzz-inexistant');
-      equal(formationStore.filtered().length, 0, 'Le filtre devrait \u00eatre vide');
-      formationStore.setQuery('');
-      equal(formationStore.filtered().length, total, 'Le filtre vide doit tout retourner');
-      formationStore.setQuery(previous);
+    name: 'La recherche de formations est d\u00e9l\u00e9gu\u00e9e au backend (pagin\u00e9e)',
+    run: async () => {
+      const session = (await handleRequest({
+        method: 'POST',
+        path: '/auth/login',
+        body: DEMO_CREDENTIALS,
+      })) as AuthSession;
+      const token = session.accessToken;
+
+      const empty = (await handleRequest({
+        method: 'GET',
+        path: '/formations?page=1&limit=10&q=zzz-inexistant',
+        token,
+      })) as FormationPage;
+      equal(empty.items.length, 0, 'La recherche serveur devrait \u00eatre vide');
+      equal(empty.total, 0, 'Le total devrait \u00eatre nul');
+      equal(empty.hasMore, false, 'hasMore devrait \u00eatre faux');
+    },
+  },
+  {
+    suite: 'Stores',
+    name: 'Le filtre cat\u00e9gorie est appliqu\u00e9 par le backend',
+    run: async () => {
+      const session = (await handleRequest({
+        method: 'POST',
+        path: '/auth/login',
+        body: DEMO_CREDENTIALS,
+      })) as AuthSession;
+      const token = session.accessToken;
+
+      const categories = (await handleRequest({
+        method: 'GET',
+        path: '/formations/categories',
+        token,
+      })) as FormationCategory[];
+      assert(categories.length > 0, 'Aucune cat\u00e9gorie retourn\u00e9e');
+
+      const first = categories[0];
+      const page = (await handleRequest({
+        method: 'GET',
+        path: `/formations?page=1&limit=50&category=${encodeURIComponent(first.name)}`,
+        token,
+      })) as FormationPage;
+      equal(page.total, first.count, 'Le total filtr\u00e9 ne correspond pas au compteur');
+      assert(
+        page.items.every((formation) => formation.category === first.name),
+        'Une formation hors cat\u00e9gorie a \u00e9t\u00e9 retourn\u00e9e',
+      );
     },
   },
   {
@@ -360,8 +405,14 @@ const cases: TestCase[] = [
       })) as AuthSession;
       const token = session.accessToken;
 
-      const formations = (await handleRequest({ method: 'GET', path: '/formations', token })) as Formation[];
+      const formationPage = (await handleRequest({
+        method: 'GET',
+        path: '/formations?page=1&limit=10',
+        token,
+      })) as FormationPage;
+      const formations = formationPage.items;
       assert(formations.length > 0, 'Aucune formation retourn\u00e9e');
+      assert(formations.length <= formationPage.limit, 'La page d\u00e9passe la taille demand\u00e9e');
 
       const levels = (await handleRequest({
         method: 'GET',

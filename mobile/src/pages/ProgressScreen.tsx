@@ -20,8 +20,8 @@ export function ProgressScreen({ navigation }: Props) {
   const progression = useProgressionStore();
 
   useEffect(() => {
-    if (formations.status === 'idle') void formationStore.load();
-  }, [formations.status]);
+    void formationStore.loadCatalog();
+  }, []);
 
   const entries = useMemo(() => Object.values(progression.documents), [progression.documents]);
   const totalPagesRead = entries.reduce((sum, entry) => sum + entry.pagesRead.length, 0);
@@ -30,9 +30,9 @@ export function ProgressScreen({ navigation }: Props) {
   const recent = useMemo(() => progressionStore.recentDocuments(4), [progression.documents]);
 
   const globalPercent = useMemo(() => {
-    const total = formations.items.reduce((sum, f) => sum + f.totalPages, 0);
+    const total = formations.catalog.reduce((sum, f) => sum + f.totalPages, 0);
     return total ? Math.round((totalPagesRead / total) * 100) : 0;
-  }, [formations.items, totalPagesRead]);
+  }, [formations.catalog, totalPagesRead]);
 
   const confirmReset = () => {
     if (Platform.OS === 'web') {
@@ -72,7 +72,7 @@ export function ProgressScreen({ navigation }: Props) {
         </Animated.View>
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Par formation</Text>
-        {formations.items.length === 0 ? (
+        {formations.catalog.length === 0 ? (
           <MessageState
             icon={'stats-chart-outline'}
             title={'Pas encore de donn\u00e9es'}
@@ -80,7 +80,7 @@ export function ProgressScreen({ navigation }: Props) {
           />
         ) : (
           <View style={{ gap: spacing.sm }}>
-            {formations.items.map((formation, index) => {
+            {formations.catalog.map((formation, index) => {
               const percent = progressionStore.formationPercent(formation.id, formation.totalPages);
               return (
                 <Animated.View key={formation.id} entering={FadeInDown.delay(index * 60)}>

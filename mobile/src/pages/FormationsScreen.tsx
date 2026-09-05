@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { styles } from './FormationsScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme, spacing } from '../core/theme/theme';
-import { SearchBar, LoadingState, MessageState } from '../components';
+import { SearchBar, LoadingState, MessageState, CategoryFilter } from '../components';
 import { UserAvatar } from '../components/UserAvatar';
 import { FormationCard } from '../components/FormationCard';
 import { formationStore, useFormationStore } from '../core/state/formation.store';
@@ -27,20 +27,27 @@ export function FormationsScreen({ navigation }: Props) {
     if (state.status === 'idle') void formationStore.load();
   }, [state.status]);
 
-  const items = useMemo(() => formationStore.filtered(), [state.items, state.query]);
+  // Le bandeau de synthèse porte sur TOUT le catalogue, pas sur la page
+  // affichée : il est agrégé par tranches en arrière-plan.
+  useEffect(() => {
+    void formationStore.loadCatalog();
+  }, []);
+
+  const catalog = state.catalog;
 
   const globalPercent = useMemo(() => {
-    const totalPages = state.items.reduce((sum, f) => sum + f.totalPages, 0);
+    const totalPages = catalog.reduce((sum, f) => sum + f.totalPages, 0);
     const read = Object.values(progression.documents).reduce((sum, doc) => sum + doc.pagesRead.length, 0);
     return totalPages ? Math.round((read / totalPages) * 100) : 0;
-  }, [state.items, progression.documents]);
+  }, [catalog, progression.documents]);
 
   const accessibleCount = useMemo(
-    () => state.items.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length,
-    [state.items, auth.user?.id, access],
+    () => catalog.filter((f) => hasFormationAccess(auth.user?.id, f.id)).length,
+    [catalog, auth.user?.id, access],
   );
 
-  const lockedCount = state.items.length - accessibleCount;
+  const lockedCount = catalog.length - accessibleCount;
+  const isFiltering = state.query.trim().length > 0 || state.category !== null;
 
   const openFormation = useCallback(
     (formationId: string) => {
@@ -61,19 +68,34 @@ export function FormationsScreen({ navigation }: Props) {
     navigation.navigate('Tabs', { screen: 'ProfileTab' });
   }, [navigation]);
 
+  const handleEndReached = useCallback(() => {
+    void formationStore.loadMore();
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    formationStore.setQuery('');
+    formationStore.setCategory(null);
+  }, []);
+
   const firstName = auth.user?.firstName ?? '';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
       <FlatList
-        data={state.status === 'loading' ? [] : items}
+        data={state.status === 'loading' ? [] : state.items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps={'handled'}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.4}
         refreshControl={
           <RefreshControl
             refreshing={state.refreshing}
-            onRefresh={() => void formationStore.load({ refresh: true })}
+            onRefresh={() => {
+              void formationStore.load({ refresh: true });
+              void formationStore.loadCatalog({ refresh: true });
+            }}
             tintColor={theme.primary}
           />
         }
@@ -100,13 +122,13 @@ export function FormationsScreen({ navigation }: Props) {
               />
             </View>
 
-            {state.status === 'success' && state.items.length > 0 ? (
+            {catalog.length > 0 ? (
               <View style={[styles.banner, { backgroundColor: theme.primary }]}>
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={styles.bannerLabel}>PROGRESSION GLOBALE</Text>
                   <Text style={styles.bannerValue}>{globalPercent} % du catalogue parcouru</Text>
                   <Text style={styles.bannerHint}>
-                    {accessibleCount}/{state.items.length} formations accessibles • {state.items.reduce((s, f) => s + f.documentsCount, 0)} documents
+                    {accessibleCount}/{catalog.length} formations accessibles • {catalog.reduce((s, f) => s + f.documentsCount, 0)} documents
                   </Text>
                 </View>
                 <View style={styles.bannerCircle}>
@@ -116,6 +138,18 @@ export function FormationsScreen({ navigation }: Props) {
             ) : null}
 
             <SearchBar value={state.query} onChange={(value) => formationStore.setQuery(value)} />
+
+            <CategoryFilter
+              categories={state.categories}
+              value={state.category}
+              onChange={(category) => formationStore.setCategory(category)}
+            />
+
+            {state.status === 'success' && state.total > 0 ? (
+              <Text style={[styles.resultCount, { color: theme.textFaint }]}>
+                {state.items.length} / {state.total} formation{state.total > 1 ? 's' : ''}
+              </Text>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -130,13 +164,17 @@ export function FormationsScreen({ navigation }: Props) {
               actionLabel={'Réessayer'}
               onAction={() => void formationStore.load()}
             />
-          ) : state.query ? (
+          ) : isFiltering ? (
             <MessageState
               icon={'search-outline'}
               title={'Aucun résultat'}
-              message={`Aucune formation ne correspond à « ${state.query} ».`}
-              actionLabel={'Effacer la recherche'}
-              onAction={() => formationStore.setQuery('')}
+              message={
+                state.query
+                  ? `Aucune formation ne correspond à « ${state.query} ».`
+                  : 'Aucune formation dans cette catégorie.'
+              }
+              actionLabel={'Réinitialiser les filtres'}
+              onAction={clearFilters}
             />
           ) : (
             <MessageState
@@ -147,6 +185,15 @@ export function FormationsScreen({ navigation }: Props) {
               onAction={() => void formationStore.load({ refresh: true })}
             />
           )
+        }
+        ListFooterComponent={
+          <ListFooter
+            loadingMore={state.loadingMore}
+            hasMore={state.hasMore}
+            errorMessage={state.loadMoreError?.message ?? null}
+            itemCount={state.items.length}
+            onRetry={handleEndReached}
+          />
         }
         renderItem={({ item, index }) => {
           const hasAccess = hasFormationAccess(auth.user?.id, item.id);
@@ -164,4 +211,45 @@ export function FormationsScreen({ navigation }: Props) {
       />
     </SafeAreaView>
   );
+}
+
+interface FooterProps {
+  loadingMore: boolean;
+  hasMore: boolean;
+  errorMessage: string | null;
+  itemCount: number;
+  onRetry: () => void;
+}
+
+/** Pied de liste de l'infinite scroll : chargement, erreur ou fin de liste. */
+function ListFooter({ loadingMore, hasMore, errorMessage, itemCount, onRetry }: FooterProps) {
+  const theme = useTheme();
+
+  if (loadingMore) {
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator color={theme.primary} />
+        <Text style={[styles.footerText, { color: theme.textFaint }]}>Chargement…</Text>
+      </View>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <Pressable onPress={onRetry} style={styles.footer} accessibilityRole={'button'}>
+        <Text style={[styles.footerText, { color: theme.danger }]}>{errorMessage}</Text>
+        <Text style={[styles.footerAction, { color: theme.primary }]}>Réessayer</Text>
+      </Pressable>
+    );
+  }
+
+  if (!hasMore && itemCount > 0) {
+    return (
+      <View style={styles.footer}>
+        <Text style={[styles.footerText, { color: theme.textFaint }]}>Fin de la liste</Text>
+      </View>
+    );
+  }
+
+  return null;
 }

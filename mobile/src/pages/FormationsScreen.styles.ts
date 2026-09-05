@@ -21,4 +21,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bannerCircleText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  resultCount: { fontSize: 12, fontWeight: '600' },
+  footer: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: spacing.lg },
+  footerText: { fontSize: 12.5, fontWeight: '600', textAlign: 'center' },
+  footerAction: { fontSize: 12.5, fontWeight: '800' },
 });

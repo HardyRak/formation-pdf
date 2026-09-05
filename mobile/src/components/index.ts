@@ -6,6 +6,7 @@
 
 export { AnimatedCard } from './AnimatedCard';
 export { Button } from './Button';
+export { CategoryFilter } from './CategoryFilter';
 export { Chip } from './Chip';
 export { FormationCard } from './FormationCard';
 export { OutlineSheet, type OutlineEntry } from './OutlineSheet';

@@ -1,4 +1,12 @@
-import type { ApiError, AuthSession, DocumentProgress, User } from '../../models';
+import type {
+  ApiError,
+  AuthSession,
+  DocumentProgress,
+  Formation,
+  FormationCategory,
+  FormationPage,
+  User,
+} from '../../models';
 import { catalogDb } from './catalog';
 import { FORMATION_ACCESS, LEVEL_ACCESS } from '../../security/access';
 import { mergeProgressEntries, percentOf } from '../../utils/progression-merge';
@@ -149,12 +157,57 @@ function requireAuth(token?: string | null): User {
   return account.user;
 }
 
+/** Découpe une URL simulée en chemin + paramètres de requête. */
+function parseUrl(url: string): { pathname: string; query: URLSearchParams } {
+  const [pathname, search = ''] = url.split('?');
+  return { pathname, query: new URLSearchParams(search) };
+}
+
+const DEFAULT_PAGE_LIMIT = 10;
+
+/** Recherche + filtre catégorie + pagination, côté « serveur » simulé. */
+function paginateFormations(all: Formation[], query: URLSearchParams): FormationPage {
+  const term = (query.get('q') ?? '').trim().toLowerCase();
+  const category = (query.get('category') ?? '').trim().toLowerCase();
+  const page = Math.max(1, Number.parseInt(query.get('page') ?? '1', 10) || 1);
+  const limit = Math.min(50, Math.max(1, Number.parseInt(query.get('limit') ?? '', 10) || DEFAULT_PAGE_LIMIT));
+
+  const matches = all.filter((formation) => {
+    if (category && formation.category.toLowerCase() !== category) return false;
+    if (!term) return true;
+    return [formation.name, formation.description, formation.category].some((field) =>
+      field.toLowerCase().includes(term),
+    );
+  });
+
+  const start = (page - 1) * limit;
+  return {
+    items: matches.slice(start, start + limit),
+    total: matches.length,
+    page,
+    limit,
+    hasMore: start + limit < matches.length,
+  };
+}
+
+/** Catégories distinctes du catalogue, avec leur volumétrie. */
+function listCategories(all: Formation[]): FormationCategory[] {
+  const counts = new Map<string, number>();
+  all.forEach((formation) => {
+    counts.set(formation.category, (counts.get(formation.category) ?? 0) + 1);
+  });
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Point d'entrée unique : équivalent du routeur NestJS. */
 export async function handleRequest({ method, path, body, token }: BackendRequest): Promise<unknown> {
   const db = catalogDb();
+  const { pathname, query } = parseUrl(path);
 
   // ---- Auth ------------------------------------------------------
-  if (method === 'POST' && path === '/auth/login') {
+  if (method === 'POST' && pathname === '/auth/login') {
     await latency(650);
     const email = String(body?.email ?? '').trim().toLowerCase();
     const password = String(body?.password ?? '');
@@ -165,7 +218,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return buildSession(account);
   }
 
-  if (method === 'POST' && path === '/auth/refresh') {
+  if (method === 'POST' && pathname === '/auth/refresh') {
     await latency(300);
     const payload = body?.refreshToken ? decodeJwt(body.refreshToken as string) : null;
     if (!payload || payload.typ !== 'refresh' || payload.exp < Date.now()) {
@@ -176,17 +229,17 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return buildSession(account);
   }
 
-  if (method === 'POST' && path === '/auth/logout') {
+  if (method === 'POST' && pathname === '/auth/logout') {
     await latency(150);
     return { success: true };
   }
 
-  if (method === 'GET' && path === '/auth/me') {
+  if (method === 'GET' && pathname === '/auth/me') {
     await latency(200);
     return requireAuth(token);
   }
 
-  if (method === 'GET' && path === '/auth/me/access') {
+  if (method === 'GET' && pathname === '/auth/me/access') {
     await latency(180);
     return accessSummaryFor(requireAuth(token));
   }
@@ -194,12 +247,17 @@ export async function handleRequest({ method, path, body, token }: BackendReques
   // ---- Ressources protégées -------------------------------------
   requireAuth(token);
 
-  if (method === 'GET' && path === '/formations') {
-    await latency(520);
-    return db.formations;
+  if (method === 'GET' && pathname === '/formations/categories') {
+    await latency(220);
+    return listCategories(db.formations);
   }
 
-  const levelsMatch = path.match(/^\/formations\/([\w-]+)\/levels$/);
+  if (method === 'GET' && pathname === '/formations') {
+    await latency(520);
+    return paginateFormations(db.formations, query);
+  }
+
+  const levelsMatch = pathname.match(/^\/formations\/([\w-]+)\/levels$/);
   if (method === 'GET' && levelsMatch) {
     await latency(420);
     const formationId = levelsMatch[1];
@@ -209,7 +267,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return db.levels.filter((l) => l.formationId === formationId).sort((a, b) => a.order - b.order);
   }
 
-  const docsMatch = path.match(/^\/levels\/([\w-]+)\/documents$/);
+  const docsMatch = pathname.match(/^\/levels\/([\w-]+)\/documents$/);
   if (method === 'GET' && docsMatch) {
     await latency(420);
     const levelId = docsMatch[1];
@@ -219,7 +277,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return db.documents.filter((doc) => doc.levelId === levelId).sort((a, b) => a.order - b.order);
   }
 
-  const docMatch = path.match(/^\/documents\/([\w-]+)$/);
+  const docMatch = pathname.match(/^\/documents\/([\w-]+)$/);
   if (method === 'GET' && docMatch) {
     await latency(260);
     const doc = db.documents.find((item) => item.id === docMatch[1]);
@@ -228,7 +286,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
   }
 
   // Flux du PDF : pages sérialisées, aucune URL publique n'est exposée.
-  const streamMatch = path.match(/^\/documents\/([\w-]+)\/stream$/);
+  const streamMatch = pathname.match(/^\/documents\/([\w-]+)\/stream$/);
   if (method === 'GET' && streamMatch) {
     await latency(700);
     const pages = db.pages[streamMatch[1]];
@@ -239,12 +297,12 @@ export async function handleRequest({ method, path, body, token }: BackendReques
   // ---- Progression (équivalent de back/src/progression) -----------
   const user = requireAuth(token);
 
-  if (method === 'GET' && path === '/progression') {
+  if (method === 'GET' && pathname === '/progression') {
     await latency(300);
     return progressionDbFor(user.id).list();
   }
 
-  const upsertMatch = path.match(/^\/progression\/documents\/([\w-]+)$/);
+  const upsertMatch = pathname.match(/^\/progression\/documents\/([\w-]+)$/);
   if (method === 'PUT' && upsertMatch) {
     await latency(220);
     const documentId = upsertMatch[1];
@@ -258,7 +316,7 @@ export async function handleRequest({ method, path, body, token }: BackendReques
     return { success: progressionDbFor(user.id).remove(upsertMatch[1]) };
   }
 
-  if (method === 'DELETE' && path === '/progression') {
+  if (method === 'DELETE' && pathname === '/progression') {
     await latency(200);
     return { success: true, deletedCount: progressionDbFor(user.id).clear() };
   }

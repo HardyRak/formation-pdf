@@ -1,12 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { ApiException } from '../common/api-exception';
-import type { FormationDto, LevelDto, StreamDto, TrainingDocumentDto } from '../common/contracts';
+import { escapeRegex } from '../common/id.util';
+import type {
+  FormationCategoryDto,
+  FormationPageDto,
+  LevelDto,
+  StreamDto,
+  TrainingDocumentDto,
+} from '../common/contracts';
 import { Formation, FormationDocument } from './formation.schema';
 import { Level, LevelDocument } from './level.schema';
 import { TrainingDocumentModel, TrainingDocumentDocument } from './document.schema';
 import { toFormationDto, toLevelDto, toTrainingDocumentDto } from './catalog.mapper';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
 
 /**
  * Lecture du catalogue. Le contenu (`pages`) n'est jamais renvoyé dans les
@@ -21,9 +31,57 @@ export class CatalogService {
     private readonly documents: Model<TrainingDocumentDocument>,
   ) {}
 
-  async listFormations(): Promise<FormationDto[]> {
-    const items = await this.formations.find().sort({ order: 1 }).lean();
-    return items.map(toFormationDto);
+  /**
+   * Liste paginée du catalogue : recherche plein texte et filtre catégorie
+   * appliqués en base (le client mobile charge page par page).
+   */
+  async listFormations(
+    options: { q?: string; category?: string; page?: number; limit?: number } = {},
+  ): Promise<FormationPageDto> {
+    const page = options.page && options.page > 0 ? options.page : DEFAULT_PAGE;
+    const limit = options.limit && options.limit > 0 ? options.limit : DEFAULT_LIMIT;
+
+    const filter: FilterQuery<FormationDocument> = {};
+
+    const category = options.category?.trim();
+    if (category) {
+      filter.category = { $regex: `^${escapeRegex(category)}$`, $options: 'i' };
+    }
+
+    const term = options.q?.trim();
+    if (term) {
+      const regex = { $regex: escapeRegex(term), $options: 'i' };
+      filter.$or = [{ name: regex }, { description: regex }, { category: regex }];
+    }
+
+    const [items, total] = await Promise.all([
+      this.formations
+        .find(filter)
+        .sort({ order: 1, _id: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      this.formations.countDocuments(filter),
+    ]);
+
+    return {
+      items: items.map(toFormationDto),
+      total,
+      page,
+      limit,
+      hasMore: page * limit < total,
+    };
+  }
+
+  /** Catégories réellement présentes dans le catalogue, avec leur volumétrie. */
+  async listCategories(): Promise<FormationCategoryDto[]> {
+    const rows = await this.formations.aggregate<{ _id: string; count: number }>([
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+    return rows
+      .filter((row) => typeof row._id === 'string' && row._id.length > 0)
+      .map((row) => ({ name: row._id, count: row.count }));
   }
 
   async listLevels(formationId: string): Promise<LevelDto[]> {

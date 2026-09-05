@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, useColorScheme } from 'react-native';
 import { styles } from './ProfileScreen.styles';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -13,7 +13,7 @@ import { progressionStore, useProgressionStore } from '../core/state/progression
 import { requestLogs } from '../core/api/http-client';
 import { FORMATION_LABELS } from '../core/security/access';
 import { getAccessibleFormations, hasFormationAccess, useAccessStore } from '../core/state/access.store';
-import { useFormationStore } from '../core/state/formation.store';
+import { formationStore, useFormationStore } from '../core/state/formation.store';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = { navigation: NativeStackScreenProps<RootStackParamList, 'Tabs'>['navigation'] };
@@ -26,6 +26,10 @@ export function ProfileScreen({ navigation }: Props) {
   const access = useAccessStore();
   const scheme = useColorScheme();
 
+  useEffect(() => {
+    void formationStore.loadCatalog();
+  }, []);
+
   const expiresIn = useMemo(() => {
     if (!auth.session) return '—';
     const remaining = auth.session.expiresAt - Date.now();
@@ -36,7 +40,7 @@ export function ProfileScreen({ navigation }: Props) {
   const documentsTracked = Object.keys(progression.documents).length;
   const logs = requestLogs().slice(0, 5);
 
-  const allFormations = formations.items;
+  const allFormations = formations.catalog;
 
   const accessibleFormations = useMemo(() => {
     return getAccessibleFormations(auth.user?.id);

@@ -32,6 +32,26 @@ export interface FormationDto {
   mandatory: boolean;
 }
 
+/**
+ * Page de résultats du catalogue mobile (infinite scroll).
+ * `page` est 1-based ; `hasMore` évite au client de recalculer la fin de liste.
+ */
+export interface FormationPageDto {
+  items: FormationDto[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+/** Catégorie exposée au client mobile (filtre de la liste des formations). */
+export interface FormationCategoryDto {
+  /** Nom de la catégorie, tel que porté par `FormationDto.category`. */
+  name: string;
+  /** Nombre de formations du catalogue rattachées à cette catégorie. */
+  count: number;
+}
+
 export interface LevelDto {
   id: string;
   formationId: string;
