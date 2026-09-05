@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AccessModule } from '../access/access.module';
 import { LevelAccessGuard, DocumentAccessGuard } from '../access/access.guard';
 import { Formation, FormationSchema } from './formation.schema';
+import { Category, CategorySchema } from './category.schema';
 import { Level, LevelSchema } from './level.schema';
 import { TrainingDocumentModel, TrainingDocumentSchema } from './document.schema';
 import { CatalogService } from './catalog.service';
@@ -14,6 +15,7 @@ import { DocumentsController } from './documents.controller';
   imports: [
     MongooseModule.forFeature([
       { name: Formation.name, schema: FormationSchema },
+      { name: Category.name, schema: CategorySchema },
       { name: Level.name, schema: LevelSchema },
       { name: TrainingDocumentModel.name, schema: TrainingDocumentSchema },
     ]),

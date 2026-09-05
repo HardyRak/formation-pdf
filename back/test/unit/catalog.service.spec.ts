@@ -78,6 +78,22 @@ class FakeFormationsModel {
   }
 }
 
+/** Faux modèle du référentiel `categories` (source de vérité du filtre). */
+class FakeCategoriesModel {
+  constructor(public readonly rows: Row[]) {}
+
+  find(): { sort: () => { lean: () => Promise<Row[]> } } {
+    const sorted = [...this.rows].sort(
+      (a, b) =>
+        Number(a.order ?? 0) - Number(b.order ?? 0) ||
+        String(a.name).localeCompare(String(b.name)),
+    );
+    return { sort: () => ({ lean: () => Promise.resolve(sorted) }) };
+  }
+}
+
+const category = (id: string, name: string, order: number): Row => ({ _id: id, name, order });
+
 const formation = (id: string, order: number, name: string, category: string, description = ''): Row => ({
   _id: id,
   name,
@@ -105,6 +121,7 @@ describe('CatalogService.listFormations', () => {
   const service = () =>
     new CatalogService(
       new FakeFormationsModel(rows) as never,
+      new FakeCategoriesModel([]) as never,
       {} as never,
       {} as never,
     );
@@ -156,20 +173,67 @@ describe('CatalogService.listFormations', () => {
 });
 
 describe('CatalogService.listCategories', () => {
-  it('agrège les catégories du catalogue avec leur volumétrie', async () => {
-    const service = new CatalogService(
-      new FakeFormationsModel([
+  const build = (formations: Row[], categories: Row[]) =>
+    new CatalogService(
+      new FakeFormationsModel(formations) as never,
+      new FakeCategoriesModel(categories) as never,
+      {} as never,
+      {} as never,
+    );
+
+  it('lit le référentiel et y joint les compteurs de formations', async () => {
+    const service = build(
+      [
         formation('f-1', 1, 'A', 'Développement'),
         formation('f-2', 2, 'B', 'HSE'),
         formation('f-3', 3, 'C', 'HSE'),
-      ]) as never,
-      {} as never,
-      {} as never,
+      ],
+      [category('cat-dev', 'Développement', 1), category('cat-hse', 'HSE', 2)],
     );
 
     await expect(service.listCategories()).resolves.toEqual([
       { name: 'Développement', count: 1 },
       { name: 'HSE', count: 2 },
     ]);
+  });
+
+  it("respecte l'ordre du référentiel, pas l'ordre alphabétique", async () => {
+    const service = build(
+      [formation('f-1', 1, 'A', 'Zéro déchet'), formation('f-2', 2, 'B', 'Alpha')],
+      [category('cat-z', 'Zéro déchet', 1), category('cat-a', 'Alpha', 2)],
+    );
+
+    const result = await service.listCategories();
+    expect(result.map((item) => item.name)).toEqual(['Zéro déchet', 'Alpha']);
+  });
+
+  it('expose une catégorie du référentiel sans formation (count = 0)', async () => {
+    const service = build(
+      [formation('f-1', 1, 'A', 'HSE')],
+      [category('cat-hse', 'HSE', 1), category('cat-vide', 'Nouvelle catégorie', 2)],
+    );
+
+    await expect(service.listCategories()).resolves.toEqual([
+      { name: 'HSE', count: 1 },
+      { name: 'Nouvelle catégorie', count: 0 },
+    ]);
+  });
+
+  it('joint les compteurs malgré une différence de casse sur Formation.category', async () => {
+    const service = build(
+      [formation('f-1', 1, 'A', 'hse'), formation('f-2', 2, 'B', 'HSE')],
+      [category('cat-hse', 'HSE', 1)],
+    );
+
+    await expect(service.listCategories()).resolves.toEqual([{ name: 'HSE', count: 2 }]);
+  });
+
+  it("ignore une catégorie orpheline absente du référentiel", async () => {
+    const service = build(
+      [formation('f-1', 1, 'A', 'Obsolète')],
+      [category('cat-hse', 'HSE', 1)],
+    );
+
+    await expect(service.listCategories()).resolves.toEqual([{ name: 'HSE', count: 0 }]);
   });
 });

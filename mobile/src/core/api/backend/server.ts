@@ -190,15 +190,19 @@ function paginateFormations(all: Formation[], query: URLSearchParams): Formation
   };
 }
 
-/** Catégories distinctes du catalogue, avec leur volumétrie. */
+/**
+ * Catégories du référentiel, avec leur volumétrie.
+ *
+ * Le backend réel lit la collection `categories` (ordre défini en back-office).
+ * Le seed la construit dans l'ordre d'apparition des formations : on reproduit
+ * cet ordre ici plutôt qu'un tri alphabétique, pour rester fidèle au contrat.
+ */
 function listCategories(all: Formation[]): FormationCategory[] {
   const counts = new Map<string, number>();
   all.forEach((formation) => {
     counts.set(formation.category, (counts.get(formation.category) ?? 0) + 1);
   });
-  return [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return [...counts.entries()].map(([name, count]) => ({ name, count }));
 }
 
 /** Point d'entrée unique : équivalent du routeur NestJS. */

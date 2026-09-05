@@ -11,6 +11,7 @@ import type {
   TrainingDocumentDto,
 } from '../common/contracts';
 import { Formation, FormationDocument } from './formation.schema';
+import { Category, CategoryDocument } from './category.schema';
 import { Level, LevelDocument } from './level.schema';
 import { TrainingDocumentModel, TrainingDocumentDocument } from './document.schema';
 import { toFormationDto, toLevelDto, toTrainingDocumentDto } from './catalog.mapper';
@@ -26,6 +27,7 @@ const DEFAULT_LIMIT = 10;
 export class CatalogService {
   constructor(
     @InjectModel(Formation.name) private readonly formations: Model<FormationDocument>,
+    @InjectModel(Category.name) private readonly categories: Model<CategoryDocument>,
     @InjectModel(Level.name) private readonly levels: Model<LevelDocument>,
     @InjectModel(TrainingDocumentModel.name)
     private readonly documents: Model<TrainingDocumentDocument>,
@@ -73,15 +75,34 @@ export class CatalogService {
     };
   }
 
-  /** Catégories réellement présentes dans le catalogue, avec leur volumétrie. */
+  /**
+   * Catégories proposées comme filtre.
+   *
+   * La collection `categories` est le référentiel qui fait autorité (géré en
+   * back-office) : elle fixe la liste ET l'ordre d'affichage. Les compteurs
+   * sont joints depuis les formations en une seule agrégation (pas de N+1).
+   */
   async listCategories(): Promise<FormationCategoryDto[]> {
-    const rows = await this.formations.aggregate<{ _id: string; count: number }>([
-      { $group: { _id: '$category', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+    const [referential, counts] = await Promise.all([
+      this.categories.find().sort({ order: 1, name: 1 }).lean(),
+      this.formations.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
     ]);
-    return rows
-      .filter((row) => typeof row._id === 'string' && row._id.length > 0)
-      .map((row) => ({ name: row._id, count: row.count }));
+
+    // Indexation insensible à la casse : `Formation.category` est une chaîne
+    // libre historique, elle peut différer du référentiel sur la casse.
+    const countByName = new Map<string, number>();
+    counts.forEach((row) => {
+      if (typeof row._id !== 'string' || !row._id) return;
+      const key = row._id.toLowerCase();
+      countByName.set(key, (countByName.get(key) ?? 0) + row.count);
+    });
+
+    return referential.map((category) => ({
+      name: category.name,
+      count: countByName.get(category.name.toLowerCase()) ?? 0,
+    }));
   }
 
   async listLevels(formationId: string): Promise<LevelDto[]> {
